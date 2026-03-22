@@ -73,13 +73,13 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
-        {/* Header */}
+        {/* Titulo */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-foreground mb-2">
-            Sistema de Gestión de Expedientes
+          <h1 className="text-2xl font-bold text-foreground mb-1">
+            Panel de Control
           </h1>
-          <p className="text-muted-foreground">
-            Administración de trámites y expedientes de la oficina
+          <p className="text-muted-foreground text-sm">
+            Administración de trámites y expedientes
           </p>
         </div>
 
