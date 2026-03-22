@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { formatSupabaseError } from '@/lib/supabase/format-error'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Trash2, Edit2, Bell } from 'lucide-react'
@@ -26,6 +27,7 @@ interface Props {
 export default function RecepcionTable({ searchTerm }: Props) {
   const [data, setData] = useState<Recepcion[]>([])
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
 
   useEffect(() => {
     fetchData()
@@ -34,6 +36,7 @@ export default function RecepcionTable({ searchTerm }: Props) {
   const fetchData = async () => {
     try {
       setLoading(true)
+      setFetchError(null)
       const supabase = createClient()
       let query = supabase.from('recepcion').select('*')
 
@@ -45,10 +48,19 @@ export default function RecepcionTable({ searchTerm }: Props) {
 
       const { data: result, error } = await query.order('fecha_ingreso', { ascending: false })
 
-      if (error) throw error
+      if (error) {
+        const msg = formatSupabaseError(error)
+        setFetchError(msg)
+        setData([])
+        console.error('Error fetching recepción:', msg, error)
+        return
+      }
       setData(result || [])
     } catch (err) {
-      console.error('Error fetching data:', err)
+      const msg = formatSupabaseError(err)
+      setFetchError(msg)
+      setData([])
+      console.error('Error fetching recepción:', msg, err)
     } finally {
       setLoading(false)
     }
@@ -63,7 +75,7 @@ export default function RecepcionTable({ searchTerm }: Props) {
       if (error) throw error
       setData(data.filter(item => item.id !== id))
     } catch (err) {
-      console.error('Error deleting:', err)
+      console.error('Error deleting:', formatSupabaseError(err), err)
     }
   }
 
@@ -80,7 +92,7 @@ export default function RecepcionTable({ searchTerm }: Props) {
       if (error) throw error
       alert('Recordatorio creado exitosamente')
     } catch (err) {
-      console.error('Error adding reminder:', err)
+      console.error('Error adding reminder:', formatSupabaseError(err), err)
     }
   }
 
@@ -89,6 +101,21 @@ export default function RecepcionTable({ searchTerm }: Props) {
       <Card>
         <CardContent className="pt-6 text-center text-muted-foreground">
           Cargando datos...
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (fetchError) {
+    return (
+      <Card className="border-destructive/50">
+        <CardContent className="pt-6 space-y-2">
+          <p className="font-medium text-destructive">No se pudieron cargar los trámites</p>
+          <p className="text-sm text-muted-foreground">{fetchError}</p>
+          <p className="text-xs text-muted-foreground">
+            Comprueba que `.env.local` tenga la URL y la clave anon de Supabase y que exista la tabla
+            `recepcion` (por ejemplo ejecutando `scripts/001_create_tables.sql` en el SQL Editor).
+          </p>
         </CardContent>
       </Card>
     )
