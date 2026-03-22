@@ -1,10 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import Link from 'next/link'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { ChevronLeft, Plus, Search } from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/card'
+import { Plus, Search } from 'lucide-react'
 import RecepcionTable from '@/components/modules/RecepcionTable'
 import RecepcionForm from '@/components/modules/RecepcionForm'
 
@@ -20,16 +19,12 @@ export default function RecepcionPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-4">
           <div>
-            <Link href="/" className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-4">
-              <ChevronLeft className="h-4 w-4" />
-              Volver al inicio
-            </Link>
-            <h1 className="text-3xl font-bold text-foreground">Módulo de Recepción</h1>
-            <p className="text-muted-foreground mt-2">
+            <h1 className="text-xl font-bold text-foreground">Módulo de Recepción</h1>
+            <p className="text-sm text-muted-foreground">
               Gestiona todos los trámites de recepción de la oficina
             </p>
           </div>
@@ -44,25 +39,20 @@ export default function RecepcionPage() {
 
         {/* Formulario */}
         {showForm && (
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle>Nuevo Trámite de Recepción</CardTitle>
-              <CardDescription>
-                Completa los datos del trámite de recepción
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+          <Card className="mb-6">
+            <CardContent className="pt-6">
+              <h3 className="text-lg font-semibold mb-4">Nuevo Trámite de Recepción</h3>
               <RecepcionForm onSuccess={handleAddSuccess} />
             </CardContent>
           </Card>
         )}
 
         {/* Búsqueda */}
-        <Card className="mb-8">
-          <CardContent className="pt-6">
+        <Card className="mb-6">
+          <CardContent className="py-4">
             <div className="flex gap-2">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <input
                   type="text"
                   placeholder="Buscar por nombre, tema, estado..."

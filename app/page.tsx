@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { FileText, Users, AlertCircle, ScrollText, Bell } from 'lucide-react'
+import { FileText, Users, AlertCircle, ScrollText, Bell, Plus, Search } from 'lucide-react'
+import RecepcionTable from '@/components/modules/RecepcionTable'
+import RecepcionForm from '@/components/modules/RecepcionForm'
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
@@ -14,10 +16,13 @@ export default function Dashboard() {
     leyPierri: 0,
     recordatorios: 0
   })
+  const [showForm, setShowForm] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [refreshKey, setRefreshKey] = useState(0)
 
   useEffect(() => {
     fetchStats()
-  }, [])
+  }, [refreshKey])
 
   const fetchStats = async () => {
     try {
@@ -31,103 +36,76 @@ export default function Dashboard() {
     }
   }
 
+  const handleAddSuccess = () => {
+    setShowForm(false)
+    setRefreshKey(k => k + 1)
+  }
+
   const modules = [
     {
       id: 'recepcion',
       title: 'Recepción',
-      description: 'Gestión de trámites de recepción',
       icon: FileText,
-      href: '/recepcion',
+      href: '/',
       count: stats.recepcion,
-      color: 'from-blue-500 to-blue-600'
+      color: 'bg-blue-600'
     },
     {
       id: 'persona-juridica',
       title: 'Persona Jurídica',
-      description: 'Trámites de personas jurídicas',
       icon: Users,
       href: '/persona-juridica',
       count: stats.personaJuridica,
-      color: 'from-purple-500 to-purple-600'
+      color: 'bg-purple-600'
     },
     {
       id: 'afectacion',
       title: 'Afectación',
-      description: 'Gestión de afectaciones',
       icon: AlertCircle,
       href: '/afectacion',
       count: stats.afectacion,
-      color: 'from-orange-500 to-orange-600'
+      color: 'bg-orange-600'
     },
     {
       id: 'ley-pierri',
       title: 'Ley Pierri',
-      description: 'Trámites según Ley Pierri',
       icon: ScrollText,
       href: '/ley-pierri',
       count: stats.leyPierri,
-      color: 'from-green-500 to-green-600'
+      color: 'bg-green-600'
+    },
+    {
+      id: 'recordatorios',
+      title: 'Recordatorios',
+      icon: Bell,
+      href: '/recordatorios',
+      count: stats.recordatorios,
+      color: 'bg-yellow-600'
     }
   ]
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-foreground mb-2">
-            Sistema de Gestión de Expedientes
-          </h1>
-          <p className="text-muted-foreground">
-            Administración de trámites y expedientes de la oficina
-          </p>
-        </div>
-
-        {/* Recordatorios Alert */}
-        {stats.recordatorios > 0 && (
-          <Card className="mb-8 border-l-4 border-l-yellow-500 bg-yellow-50">
-            <CardContent className="pt-6 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Bell className="h-5 w-5 text-yellow-600" />
-                <div>
-                  <p className="font-semibold text-yellow-900">
-                    Tienes {stats.recordatorios} recordatorio{stats.recordatorios > 1 ? 's' : ''}
-                  </p>
-                  <p className="text-sm text-yellow-800">
-                    Revisa los recordatorios pendientes
-                  </p>
-                </div>
-              </div>
-              <Link href="/recordatorios">
-                <Button variant="outline" size="sm">
-                  Ver recordatorios
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Módulos Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="container mx-auto px-4 py-6">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
           {modules.map((module) => {
             const Icon = module.icon
             return (
               <Link key={module.id} href={module.href}>
-                <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer">
-                  <CardHeader>
-                    <div className={`bg-gradient-to-r ${module.color} p-3 rounded-lg w-fit mb-3`}>
-                      <Icon className="h-6 w-6 text-white" />
+                <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <div className={`${module.color} p-2 rounded-lg flex-shrink-0`}>
+                      <Icon className="h-5 w-5 text-white" />
                     </div>
-                    <CardTitle className="text-lg">{module.title}</CardTitle>
-                    <CardDescription>{module.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-3xl font-bold text-foreground">
-                      {module.count}
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      expedientes activos
-                    </p>
+                    <div className="min-w-0">
+                      <p className="text-2xl font-bold text-foreground leading-none">
+                        {module.count}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate mt-1">
+                        {module.title}
+                      </p>
+                    </div>
                   </CardContent>
                 </Card>
               </Link>
@@ -135,25 +113,53 @@ export default function Dashboard() {
           })}
         </div>
 
-        {/* Búsqueda Global */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Búsqueda Global</CardTitle>
-            <CardDescription>
-              Busca expedientes en todos los módulos
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form className="flex gap-2">
-              <input
-                type="text"
-                placeholder="Ingresa número de expediente, nombre o descripción..."
-                className="flex-1 px-4 py-2 border border-input rounded-md bg-background"
-              />
-              <Button type="submit">Buscar</Button>
-            </form>
+        {/* Recepción Section Header */}
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-xl font-bold text-foreground">Módulo de Recepción</h2>
+            <p className="text-sm text-muted-foreground">
+              Gestiona todos los trámites de recepción de la oficina
+            </p>
+          </div>
+          <Button
+            onClick={() => setShowForm(!showForm)}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Nuevo Trámite
+          </Button>
+        </div>
+
+        {/* Formulario */}
+        {showForm && (
+          <Card className="mb-6">
+            <CardContent className="pt-6">
+              <h3 className="text-lg font-semibold mb-4">Nuevo Trámite de Recepción</h3>
+              <RecepcionForm onSuccess={handleAddSuccess} />
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Búsqueda */}
+        <Card className="mb-6">
+          <CardContent className="py-4">
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Buscar por nombre, tema, estado..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-input rounded-md bg-background"
+                />
+              </div>
+            </div>
           </CardContent>
         </Card>
+
+        {/* Tabla de Recepción */}
+        <RecepcionTable key={refreshKey} searchTerm={searchTerm} />
       </div>
     </div>
   )

@@ -39,7 +39,11 @@ export default function PersonaJuridicaForm({ onSuccess }: Props) {
 
     try {
       const supabase = createClient()
-      const { error } = await supabase.from('persona_juridica').insert([formData])
+      const dataToInsert = {
+        ...formData,
+        fecha_resolucion: formData.fecha_resolucion ? formData.fecha_resolucion : null
+      }
+      const { error } = await supabase.from('persona_juridica').insert([dataToInsert])
 
       if (error) throw error
 
