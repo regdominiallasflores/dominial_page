@@ -52,7 +52,7 @@ export default function LeyPierriPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <LeyPierriForm onSuccess={handleAddSuccess} />
+              <LeyPierriForm onSuccess={handleAddSuccess} onCancel={() => setShowForm(false)} />
             </CardContent>
           </Card>
         )}

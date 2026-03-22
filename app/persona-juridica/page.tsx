@@ -52,7 +52,7 @@ export default function PersonaJuridicaPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <PersonaJuridicaForm onSuccess={handleAddSuccess} />
+              <PersonaJuridicaForm onSuccess={handleAddSuccess} onCancel={() => setShowForm(false)} />
             </CardContent>
           </Card>
         )}

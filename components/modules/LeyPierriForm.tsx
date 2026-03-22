@@ -7,9 +7,10 @@ import { Loader2 } from 'lucide-react'
 
 interface Props {
   onSuccess: () => void
+  onCancel?: () => void
 }
 
-export default function LeyPierriForm({ onSuccess }: Props) {
+export default function LeyPierriForm({ onSuccess, onCancel }: Props) {
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     fecha_ingreso: new Date().toISOString().split('T')[0],
@@ -194,11 +195,16 @@ export default function LeyPierriForm({ onSuccess }: Props) {
         </div>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Button type="submit" disabled={loading} className="bg-green-600 hover:bg-green-700">
           {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
           Guardar Trámite
         </Button>
+        {onCancel && (
+          <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
+            Cancelar
+          </Button>
+        )}
       </div>
     </form>
   )

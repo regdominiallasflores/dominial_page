@@ -5,6 +5,11 @@ import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Trash2, Bell, ExternalLink } from 'lucide-react'
+import {
+  RecordDetailDrawer,
+  formatDetailValue,
+  type DetailRow,
+} from '@/components/RecordDetailDrawer'
 
 interface PersonaJuridica {
   id: string
@@ -25,9 +30,27 @@ interface Props {
   searchTerm: string
 }
 
+function personaJuridicaDetailRows(r: PersonaJuridica): DetailRow[] {
+  return [
+    { label: 'Ingreso', value: formatDetailValue(r.ingreso) },
+    { label: 'Legajo', value: formatDetailValue(r.legajo) },
+    { label: 'Expediente', value: formatDetailValue(r.expediente) },
+    { label: 'Denominación', value: formatDetailValue(r.denominacion) },
+    { label: 'Trámite', value: formatDetailValue(r.tramite) },
+    { label: 'Resolución', value: formatDetailValue(r.resolucion) },
+    { label: 'Fecha de resolución', value: formatDetailValue(r.fecha_resolucion) },
+    { label: 'Observaciones', value: formatDetailValue(r.observaciones) },
+    { label: 'Notificado', value: formatDetailValue(r.notificado) },
+    { label: 'Representante', value: formatDetailValue(r.representante) },
+    { label: 'Teléfono', value: formatDetailValue(r.telefono) },
+    { label: 'Identificador', value: formatDetailValue(r.id) },
+  ]
+}
+
 export default function PersonaJuridicaTable({ searchTerm }: Props) {
   const [data, setData] = useState<PersonaJuridica[]>([])
   const [loading, setLoading] = useState(true)
+  const [selected, setSelected] = useState<PersonaJuridica | null>(null)
 
   useEffect(() => {
     fetchData()
@@ -64,6 +87,7 @@ export default function PersonaJuridicaTable({ searchTerm }: Props) {
       const { error } = await supabase.from('persona_juridica').delete().eq('id', id)
       if (error) throw error
       setData(data.filter(item => item.id !== id))
+      setSelected((s) => (s?.id === id ? null : s))
     } catch (err) {
       console.error('Error deleting:', err)
     }
@@ -92,6 +116,7 @@ export default function PersonaJuridicaTable({ searchTerm }: Props) {
       const { error } = await supabase.from('persona_juridica').update({ notificado: true }).eq('id', id)
       if (error) throw error
       setData(data.map(item => item.id === id ? { ...item, notificado: true } : item))
+      setSelected((s) => (s?.id === id ? { ...s, notificado: true } : s))
       alert('Notificación registrada')
     } catch (err) {
       console.error('Error:', err)
@@ -119,34 +144,39 @@ export default function PersonaJuridicaTable({ searchTerm }: Props) {
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead className="border-b border-border bg-muted">
-          <tr>
-            <th className="text-left px-4 py-3 font-semibold">Expediente</th>
-            <th className="text-left px-4 py-3 font-semibold">Denominación</th>
-            <th className="text-left px-4 py-3 font-semibold">Representante</th>
-            <th className="text-left px-4 py-3 font-semibold">Trámite</th>
-            <th className="text-left px-4 py-3 font-semibold">Notificado</th>
-            <th className="text-center px-4 py-3 font-semibold">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((item) => (
-            <tr key={item.id} className="border-b border-border hover:bg-muted/50">
-              <td className="px-4 py-3 font-medium">{item.expediente}</td>
-              <td className="px-4 py-3">{item.denominacion}</td>
-              <td className="px-4 py-3">{item.representante}</td>
-              <td className="px-4 py-3 text-xs">{item.tramite}</td>
-              <td className="px-4 py-3">
-                <span className={`px-2 py-1 rounded text-xs font-medium ${
-                  item.notificado ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                }`}>
-                  {item.notificado ? 'Sí' : 'No'}
-                </span>
-              </td>
-              <td className="px-4 py-3">
-                <div className="flex gap-2 justify-center">
+    <>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="border-b border-border bg-muted">
+            <tr>
+              <th className="text-left px-4 py-3 font-semibold">Expediente</th>
+              <th className="text-left px-4 py-3 font-semibold">Denominación</th>
+              <th className="text-left px-4 py-3 font-semibold">Representante</th>
+              <th className="text-left px-4 py-3 font-semibold">Trámite</th>
+              <th className="text-left px-4 py-3 font-semibold">Notificado</th>
+              <th className="text-center px-4 py-3 font-semibold">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((item) => (
+              <tr
+                key={item.id}
+                className="border-b border-border hover:bg-muted/50 cursor-pointer"
+                onClick={() => setSelected(item)}
+              >
+                <td className="px-4 py-3 font-medium">{item.expediente}</td>
+                <td className="px-4 py-3">{item.denominacion}</td>
+                <td className="px-4 py-3">{item.representante}</td>
+                <td className="px-4 py-3 text-xs">{item.tramite}</td>
+                <td className="px-4 py-3">
+                  <span className={`px-2 py-1 rounded text-xs font-medium ${
+                    item.notificado ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                  }`}>
+                    {item.notificado ? 'Sí' : 'No'}
+                  </span>
+                </td>
+                <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex gap-2 justify-center">
                   <Button
                     size="sm"
                     variant="ghost"
@@ -174,12 +204,20 @@ export default function PersonaJuridicaTable({ searchTerm }: Props) {
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <RecordDetailDrawer
+        open={selected !== null}
+        onOpenChange={(open) => !open && setSelected(null)}
+        title="Detalle — Persona jurídica"
+        description={selected?.denominacion}
+        rows={selected ? personaJuridicaDetailRows(selected) : []}
+      />
+    </>
   )
 }

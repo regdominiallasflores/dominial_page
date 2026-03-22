@@ -14,3 +14,18 @@ export function getSupabaseUrl(): string {
 export function getSupabaseAnonKey(): string {
   return process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || PLACEHOLDER_ANON_KEY
 }
+
+/** `true` solo si hay URL y clave definidas en el entorno (no placeholders en runtime). */
+export function isSupabaseConfigured(): boolean {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim()
+  return Boolean(url && key)
+}
+
+/** Para mensajes de ayuda en desarrollo (no expone valores). */
+export function getSupabaseEnvStatus(): { hasUrl: boolean; hasKey: boolean } {
+  return {
+    hasUrl: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()),
+    hasKey: Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim()),
+  }
+}

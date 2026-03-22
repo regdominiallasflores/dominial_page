@@ -3,10 +3,8 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { FileText, Users, AlertCircle, ScrollText, Bell, Plus, Search } from 'lucide-react'
-import RecepcionTable from '@/components/modules/RecepcionTable'
-import RecepcionForm from '@/components/modules/RecepcionForm'
+import { FileText, Users, AlertCircle, ScrollText, Bell } from 'lucide-react'
+import RecepcionSection from '@/components/modules/RecepcionSection'
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
@@ -16,13 +14,9 @@ export default function Dashboard() {
     leyPierri: 0,
     recordatorios: 0
   })
-  const [showForm, setShowForm] = useState(false)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [refreshKey, setRefreshKey] = useState(0)
-
   useEffect(() => {
     fetchStats()
-  }, [refreshKey])
+  }, [])
 
   const fetchStats = async () => {
     try {
@@ -36,17 +30,12 @@ export default function Dashboard() {
     }
   }
 
-  const handleAddSuccess = () => {
-    setShowForm(false)
-    setRefreshKey(k => k + 1)
-  }
-
   const modules = [
     {
       id: 'recepcion',
       title: 'Recepción',
       icon: FileText,
-      href: '/',
+      href: '/recepcion',
       count: stats.recepcion,
       color: 'bg-blue-600'
     },
@@ -113,53 +102,7 @@ export default function Dashboard() {
           })}
         </div>
 
-        {/* Recepción Section Header */}
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-xl font-bold text-foreground">Módulo de Recepción</h2>
-            <p className="text-sm text-muted-foreground">
-              Gestiona todos los trámites de recepción de la oficina
-            </p>
-          </div>
-          <Button
-            onClick={() => setShowForm(!showForm)}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Nuevo Trámite
-          </Button>
-        </div>
-
-        {/* Formulario */}
-        {showForm && (
-          <Card className="mb-6">
-            <CardContent className="pt-6">
-              <h3 className="text-lg font-semibold mb-4">Nuevo Trámite de Recepción</h3>
-              <RecepcionForm onSuccess={handleAddSuccess} />
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Búsqueda */}
-        <Card className="mb-6">
-          <CardContent className="py-4">
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <input
-                  type="text"
-                  placeholder="Buscar por nombre, tema, estado..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-input rounded-md bg-background"
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Tabla de Recepción */}
-        <RecepcionTable key={refreshKey} searchTerm={searchTerm} />
+        <RecepcionSection onMutationSuccess={fetchStats} />
       </div>
     </div>
   )

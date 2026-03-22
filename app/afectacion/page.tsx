@@ -52,7 +52,7 @@ export default function AfectacionPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <AfectacionForm onSuccess={handleAddSuccess} />
+              <AfectacionForm onSuccess={handleAddSuccess} onCancel={() => setShowForm(false)} />
             </CardContent>
           </Card>
         )}
