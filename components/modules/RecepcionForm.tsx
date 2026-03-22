@@ -34,7 +34,14 @@ export default function RecepcionForm({ onSuccess }: Props) {
 
     try {
       const supabase = createClient()
-      const { error } = await supabase.from('recepcion').insert([formData])
+      
+      // Convertir strings vacíos a null para campos DATE opcionales
+      const dataToInsert = {
+        ...formData,
+        fecha_resolucion: formData.fecha_resolucion ? formData.fecha_resolucion : null
+      }
+
+      const { error } = await supabase.from('recepcion').insert([dataToInsert])
 
       if (error) throw error
 

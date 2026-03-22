@@ -38,7 +38,11 @@ export default function LeyPierriForm({ onSuccess }: Props) {
 
     try {
       const supabase = createClient()
-      const { error } = await supabase.from('ley_pierri').insert([formData])
+      const dataToInsert = {
+        ...formData,
+        fecha_envio: formData.fecha_envio ? formData.fecha_envio : null
+      }
+      const { error } = await supabase.from('ley_pierri').insert([dataToInsert])
 
       if (error) throw error
 

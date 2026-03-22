@@ -39,7 +39,11 @@ export default function AfectacionForm({ onSuccess }: Props) {
 
     try {
       const supabase = createClient()
-      const { error } = await supabase.from('afectacion').insert([formData])
+      const dataToInsert = {
+        ...formData,
+        fecha_resolucion: formData.fecha_resolucion ? formData.fecha_resolucion : null
+      }
+      const { error } = await supabase.from('afectacion').insert([dataToInsert])
 
       if (error) throw error
 
