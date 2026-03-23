@@ -81,6 +81,13 @@ export default function RecordatoriosPage() {
 
   const pendientes = recordatorios.filter(r => !r.completado)
   const completados = recordatorios.filter(r => r.completado)
+  const getDaysToReminder = (dateStr: string) => {
+    const target = new Date(`${dateStr}T00:00:00`)
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const diffMs = target.getTime() - today.getTime()
+    return Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -156,13 +163,31 @@ export default function RecordatoriosPage() {
                           )}
                         </div>
                       </div>
-                      <div className="flex gap-4 ml-9">
+                      <div className="flex gap-4 ml-9 items-center flex-wrap">
                         <span className="text-xs text-muted-foreground">
                           Fecha: <strong>{recordatorio.fecha_recordatorio}</strong>
                         </span>
                         <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
                           {recordatorio.tabla_origen}
                         </span>
+                        {!recordatorio.completado && (() => {
+                          const days = getDaysToReminder(recordatorio.fecha_recordatorio)
+                          if (days < 0) {
+                            return (
+                              <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded">
+                                Vencido ({Math.abs(days)} días)
+                              </span>
+                            )
+                          }
+                          if (days <= 2) {
+                            return (
+                              <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded">
+                                Alerta: faltan {days} día{days === 1 ? '' : 's'}
+                              </span>
+                            )
+                          }
+                          return null
+                        })()}
                       </div>
                     </div>
                     <Button

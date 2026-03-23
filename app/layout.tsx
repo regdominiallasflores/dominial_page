@@ -3,14 +3,15 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import Header from '@/components/Header'
 import Navbar from '@/components/Navbar'
+import { ORGANIZATION_TITLE } from '@/lib/site-title'
 import './globals.css'
 
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'Regularización Dominial y Persona Jurídica - Las Flores',
-  description: 'Sistema de gestión de expedientes de la Dirección de Regularización Dominial y Persona Jurídica del Municipio de Las Flores',
+  title: `${ORGANIZATION_TITLE} — Las Flores`,
+  description: `Sistema de gestión de expedientes de la ${ORGANIZATION_TITLE} del Municipio de Las Flores`,
   generator: 'v0.app',
   icons: {
     icon: [

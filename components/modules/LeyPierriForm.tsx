@@ -1,18 +1,26 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Loader2 } from 'lucide-react'
 
-interface Props {
-  onSuccess: () => void
-  onCancel?: () => void
+export type LeyPierriEditRecord = {
+  id: string
+  fecha_ingreso?: string | null
+  beneficiarios?: string | null
+  direccion?: string | null
+  telefono?: string | null
+  observaciones?: string | null
+  link_documentacion?: string | null
+  estado?: string | null
+  enviado?: boolean | null
+  fecha_envio?: string | null
+  escribania?: string | null
 }
 
-export default function LeyPierriForm({ onSuccess, onCancel }: Props) {
-  const [loading, setLoading] = useState(false)
-  const [formData, setFormData] = useState({
+function createEmptyForm() {
+  return {
     fecha_ingreso: new Date().toISOString().split('T')[0],
     beneficiarios: '',
     direccion: '',
@@ -22,8 +30,44 @@ export default function LeyPierriForm({ onSuccess, onCancel }: Props) {
     estado: 'Pendiente',
     enviado: false,
     fecha_envio: '',
-    escribania: ''
-  })
+    escribania: '',
+  }
+}
+
+function recordToForm(r: LeyPierriEditRecord) {
+  const d = (v: unknown) => (v == null || v === '' ? '' : String(v).slice(0, 10))
+  return {
+    fecha_ingreso: d(r.fecha_ingreso) || new Date().toISOString().split('T')[0],
+    beneficiarios: String(r.beneficiarios ?? ''),
+    direccion: String(r.direccion ?? ''),
+    telefono: String(r.telefono ?? ''),
+    observaciones: String(r.observaciones ?? ''),
+    link_documentacion: String(r.link_documentacion ?? ''),
+    estado: String(r.estado ?? 'Pendiente'),
+    enviado: Boolean(r.enviado),
+    fecha_envio: d(r.fecha_envio),
+    escribania: String(r.escribania ?? ''),
+  }
+}
+
+interface Props {
+  onSuccess: () => void
+  onCancel?: () => void
+  editRecord?: LeyPierriEditRecord | null
+}
+
+export default function LeyPierriForm({ onSuccess, onCancel, editRecord }: Props) {
+  const [loading, setLoading] = useState(false)
+  const [formData, setFormData] = useState(createEmptyForm)
+  const isEdit = Boolean(editRecord?.id)
+
+  useEffect(() => {
+    if (editRecord?.id) {
+      setFormData(recordToForm(editRecord))
+    } else {
+      setFormData(createEmptyForm())
+    }
+  }, [editRecord])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target as any
@@ -39,31 +83,24 @@ export default function LeyPierriForm({ onSuccess, onCancel }: Props) {
 
     try {
       const supabase = createClient()
-      const dataToInsert = {
+      const payload = {
         ...formData,
-        fecha_envio: formData.fecha_envio ? formData.fecha_envio : null
+        fecha_envio: formData.fecha_envio ? formData.fecha_envio : null,
       }
-      const { error } = await supabase.from('ley_pierri').insert([dataToInsert])
-
-      if (error) throw error
-
-      alert('Trámite creado exitosamente')
-      setFormData({
-        fecha_ingreso: new Date().toISOString().split('T')[0],
-        beneficiarios: '',
-        direccion: '',
-        telefono: '',
-        observaciones: '',
-        link_documentacion: '',
-        estado: 'Pendiente',
-        enviado: false,
-        fecha_envio: '',
-        escribania: ''
-      })
+      if (isEdit && editRecord) {
+        const { error } = await supabase.from('ley_pierri').update(payload).eq('id', editRecord.id)
+        if (error) throw error
+        alert('Trámite actualizado')
+      } else {
+        const { error } = await supabase.from('ley_pierri').insert([payload])
+        if (error) throw error
+        alert('Trámite creado exitosamente')
+        setFormData(createEmptyForm())
+      }
       onSuccess()
     } catch (err) {
       console.error('Error:', err)
-      alert('Error al crear el trámite')
+      alert(isEdit ? 'Error al actualizar el trámite' : 'Error al crear el trámite')
     } finally {
       setLoading(false)
     }
@@ -198,7 +235,7 @@ export default function LeyPierriForm({ onSuccess, onCancel }: Props) {
       <div className="flex flex-wrap gap-2">
         <Button type="submit" disabled={loading} className="bg-green-600 hover:bg-green-700">
           {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-          Guardar Trámite
+          {isEdit ? 'Guardar cambios' : 'Guardar Trámite'}
         </Button>
         {onCancel && (
           <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>

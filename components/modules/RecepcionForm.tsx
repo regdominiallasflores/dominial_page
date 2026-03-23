@@ -1,18 +1,25 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Loader2 } from 'lucide-react'
 
-interface Props {
-  onSuccess: () => void
-  onCancel?: () => void
+export type RecepcionEditRecord = {
+  id: string
+  fecha_ingreso?: string | null
+  apellido_nombre?: string | null
+  direccion?: string | null
+  telefono?: string | null
+  tema?: string | null
+  descripcion?: string | null
+  estado?: string | null
+  observaciones?: string | null
+  fecha_resolucion?: string | null
 }
 
-export default function RecepcionForm({ onSuccess, onCancel }: Props) {
-  const [loading, setLoading] = useState(false)
-  const [formData, setFormData] = useState({
+function createEmptyForm() {
+  return {
     fecha_ingreso: new Date().toISOString().split('T')[0],
     apellido_nombre: '',
     direccion: '',
@@ -21,8 +28,43 @@ export default function RecepcionForm({ onSuccess, onCancel }: Props) {
     descripcion: '',
     estado: 'Pendiente',
     observaciones: '',
-    fecha_resolucion: ''
-  })
+    fecha_resolucion: '',
+  }
+}
+
+function recordToForm(r: RecepcionEditRecord) {
+  const d = (v: unknown) => (v == null || v === '' ? '' : String(v).slice(0, 10))
+  return {
+    fecha_ingreso: d(r.fecha_ingreso) || new Date().toISOString().split('T')[0],
+    apellido_nombre: String(r.apellido_nombre ?? ''),
+    direccion: String(r.direccion ?? ''),
+    telefono: String(r.telefono ?? ''),
+    tema: String(r.tema ?? ''),
+    descripcion: String(r.descripcion ?? ''),
+    estado: String(r.estado ?? 'Pendiente'),
+    observaciones: String(r.observaciones ?? ''),
+    fecha_resolucion: d(r.fecha_resolucion),
+  }
+}
+
+interface Props {
+  onSuccess: () => void
+  onCancel?: () => void
+  editRecord?: RecepcionEditRecord | null
+}
+
+export default function RecepcionForm({ onSuccess, onCancel, editRecord }: Props) {
+  const [loading, setLoading] = useState(false)
+  const [formData, setFormData] = useState(createEmptyForm)
+  const isEdit = Boolean(editRecord?.id)
+
+  useEffect(() => {
+    if (editRecord?.id) {
+      setFormData(recordToForm(editRecord))
+    } else {
+      setFormData(createEmptyForm())
+    }
+  }, [editRecord])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -37,31 +79,25 @@ export default function RecepcionForm({ onSuccess, onCancel }: Props) {
       const supabase = createClient()
       
       // Convertir strings vacíos a null para campos DATE opcionales
-      const dataToInsert = {
+      const payload = {
         ...formData,
-        fecha_resolucion: formData.fecha_resolucion ? formData.fecha_resolucion : null
+        fecha_resolucion: formData.fecha_resolucion ? formData.fecha_resolucion : null,
       }
 
-      const { error } = await supabase.from('recepcion').insert([dataToInsert])
-
-      if (error) throw error
-
-      alert('Trámite creado exitosamente')
-      setFormData({
-        fecha_ingreso: new Date().toISOString().split('T')[0],
-        apellido_nombre: '',
-        direccion: '',
-        telefono: '',
-        tema: '',
-        descripcion: '',
-        estado: 'Pendiente',
-        observaciones: '',
-        fecha_resolucion: ''
-      })
+      if (isEdit && editRecord) {
+        const { error } = await supabase.from('recepcion').update(payload).eq('id', editRecord.id)
+        if (error) throw error
+        alert('Trámite actualizado')
+      } else {
+        const { error } = await supabase.from('recepcion').insert([payload])
+        if (error) throw error
+        alert('Trámite creado exitosamente')
+        setFormData(createEmptyForm())
+      }
       onSuccess()
     } catch (err) {
       console.error('Error:', err)
-      alert('Error al crear el trámite')
+      alert(isEdit ? 'Error al actualizar el trámite' : 'Error al crear el trámite')
     } finally {
       setLoading(false)
     }
@@ -180,7 +216,7 @@ export default function RecepcionForm({ onSuccess, onCancel }: Props) {
       <div className="flex flex-wrap gap-2">
         <Button type="submit" disabled={loading} className="bg-blue-600 hover:bg-blue-700">
           {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-          Guardar Trámite
+          {isEdit ? 'Guardar cambios' : 'Guardar Trámite'}
         </Button>
         {onCancel && (
           <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>

@@ -4,7 +4,8 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Search } from 'lucide-react'
+import { Search, X } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 export default function HeaderSearch() {
   const router = useRouter()
@@ -12,10 +13,14 @@ export default function HeaderSearch() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
-    if (searchTerm.trim()) {
-      router.push(`/busqueda?q=${encodeURIComponent(searchTerm.trim())}`)
+    const q = searchTerm.trim()
+    if (q) {
+      router.push(`/busqueda?q=${encodeURIComponent(q)}`)
+      setSearchTerm('')
     }
   }
+
+  const clear = () => setSearchTerm('')
 
   return (
     <form
@@ -29,8 +34,21 @@ export default function HeaderSearch() {
           placeholder="Buscar expediente..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="h-9 w-full border-border bg-background pl-9 text-foreground shadow-sm"
+          className={cn(
+            'h-9 w-full border-border bg-background pl-9 text-foreground shadow-sm',
+            searchTerm.trim() ? 'pr-9' : 'pr-3',
+          )}
         />
+        {searchTerm.length > 0 && (
+          <button
+            type="button"
+            onClick={clear}
+            className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            aria-label="Borrar búsqueda"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
       </div>
       <Button type="submit" size="sm" variant="secondary" className="shrink-0 sm:w-auto">
         Buscar

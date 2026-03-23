@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import HeaderSearch from '@/components/HeaderSearch'
+import { ORGANIZATION_TITLE_HEADER_LINES } from '@/lib/site-title'
 
 export default function Header() {
   return (
@@ -19,12 +20,14 @@ export default function Header() {
             <span className="text-xs font-medium uppercase leading-tight tracking-widest text-header-muted">
               Municipalidad de Las Flores
             </span>
-            <span className="text-balance text-lg font-bold leading-tight">
-              Dirección de Regularización Dominial
-            </span>
-            <span className="text-balance text-lg font-bold leading-tight">
-              y Persona Jurídica
-            </span>
+            {ORGANIZATION_TITLE_HEADER_LINES.map((line) => (
+              <span
+                key={line}
+                className="text-balance text-base font-bold leading-tight md:text-lg"
+              >
+                {line}
+              </span>
+            ))}
           </div>
         </Link>
         <HeaderSearch />

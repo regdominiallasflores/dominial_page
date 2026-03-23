@@ -4,14 +4,24 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getSupabaseEnvStatus, isSupabaseConfigured } from '@/lib/supabase/credentials'
 import { formatSupabaseError } from '@/lib/supabase/format-error'
+import { getPendingRemindersByRegistro, type PendingReminderInfo } from '@/lib/reminders'
+import { cn } from '@/lib/utils'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Trash2, Bell } from 'lucide-react'
+import { Trash2, Bell, Edit2 } from 'lucide-react'
 import {
   RecordDetailDrawer,
   formatDetailValue,
   type DetailRow,
 } from '@/components/RecordDetailDrawer'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import RecepcionForm from '@/components/modules/RecepcionForm'
+import ReminderDialog from '@/components/modules/ReminderDialog'
 
 interface Recepcion {
   id: string
@@ -54,6 +64,14 @@ export default function RecepcionTable({ searchTerm }: Props) {
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<LoadError | null>(null)
   const [selected, setSelected] = useState<Recepcion | null>(null)
+  const [editing, setEditing] = useState<Recepcion | null>(null)
+  const [pendingReminders, setPendingReminders] = useState<Map<string, PendingReminderInfo>>(new Map())
+  const [reminderTarget, setReminderTarget] = useState<{
+    id: string
+    label: string
+    titulo: string
+    existing: PendingReminderInfo | null
+  } | null>(null)
 
   useEffect(() => {
     fetchData()
@@ -86,7 +104,15 @@ export default function RecepcionTable({ searchTerm }: Props) {
         console.error('Error fetching recepción:', msg)
         return
       }
-      setData(result || [])
+      const rows = result || []
+      setData(rows)
+      try {
+        const ids = rows.map((r) => r.id)
+        const pending = await getPendingRemindersByRegistro('recepcion', ids)
+        setPendingReminders(pending)
+      } catch (err) {
+        console.error('Error loading reminders:', formatSupabaseError(err))
+      }
     } catch (err) {
       const msg = formatSupabaseError(err)
       setLoadError({ kind: 'api', message: msg })
@@ -106,25 +132,67 @@ export default function RecepcionTable({ searchTerm }: Props) {
       if (error) throw error
       setData(data.filter(item => item.id !== id))
       setSelected((s) => (s?.id === id ? null : s))
+      setEditing((s) => (s?.id === id ? null : s))
+      setPendingReminders((prev) => {
+        const next = new Map(prev)
+        next.delete(id)
+        return next
+      })
     } catch (err) {
       console.error('Error deleting:', formatSupabaseError(err), err)
     }
   }
 
-  const handleAddReminder = async (id: string, nombre: string) => {
+  const handleAddReminder = (id: string, nombre: string) => {
+    const existing = pendingReminders.get(id) ?? null
+    setReminderTarget({
+      id,
+      label: nombre,
+      titulo: existing?.titulo ?? `Seguimiento: ${nombre}`,
+      existing,
+    })
+  }
+
+  const handleSaveReminder = async (
+    payload: { titulo: string; descripcion: string; fechaRecordatorio: string },
+    target: {
+      id: string
+      label: string
+      titulo: string
+      tablaOrigen: string
+      existing?: PendingReminderInfo | null
+    },
+  ) => {
     try {
       const supabase = createClient()
-      const { error } = await supabase.from('recordatorios').insert({
-        titulo: `Seguimiento: ${nombre}`,
-        descripcion: 'Recordatorio de seguimiento de trámite de recepción',
-        fecha_recordatorio: new Date().toISOString().split('T')[0],
-        tabla_origen: 'recepcion',
-        registro_id: id
-      })
-      if (error) throw error
-      alert('Recordatorio creado exitosamente')
+      const desc =
+        payload.descripcion || 'Recordatorio de seguimiento de trámite de recepción'
+      if (target.existing?.reminderId) {
+        const { error } = await supabase
+          .from('recordatorios')
+          .update({
+            titulo: payload.titulo,
+            descripcion: desc,
+            fecha_recordatorio: payload.fechaRecordatorio,
+          })
+          .eq('id', target.existing.reminderId)
+        if (error) throw error
+        alert('Recordatorio actualizado')
+      } else {
+        const { error } = await supabase.from('recordatorios').insert({
+          titulo: payload.titulo,
+          descripcion: desc,
+          fecha_recordatorio: payload.fechaRecordatorio,
+          tabla_origen: 'recepcion',
+          registro_id: target.id,
+        })
+        if (error) throw error
+        alert('Recordatorio creado exitosamente')
+      }
+      setReminderTarget(null)
+      void fetchData()
     } catch (err) {
-      console.error('Error adding reminder:', formatSupabaseError(err), err)
+      console.error('Error saving reminder:', formatSupabaseError(err), err)
     }
   }
 
@@ -258,8 +326,24 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...`}
                   <Button
                     size="sm"
                     variant="ghost"
+                    onClick={() => setEditing(item)}
+                    title="Editar"
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
                     onClick={() => handleAddReminder(item.id, item.apellido_nombre)}
-                    title="Agregar recordatorio"
+                    title={
+                      pendingReminders.has(item.id)
+                        ? 'Editar recordatorio'
+                        : 'Agregar recordatorio'
+                    }
+                    className={cn(
+                      pendingReminders.has(item.id) &&
+                        'bg-amber-100 text-amber-700 hover:bg-amber-200 hover:text-amber-800',
+                    )}
                   >
                     <Bell className="h-4 w-4" />
                   </Button>
@@ -285,6 +369,46 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...`}
         title="Detalle — Recepción"
         description={selected?.apellido_nombre}
         rows={selected ? recepcionDetailRows(selected) : []}
+      />
+
+      <Dialog open={editing !== null} onOpenChange={(open) => !open && setEditing(null)}>
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Editar trámite de recepción</DialogTitle>
+          </DialogHeader>
+          {editing && (
+            <RecepcionForm
+              editRecord={editing}
+              onSuccess={() => {
+                setEditing(null)
+                void fetchData()
+              }}
+              onCancel={() => setEditing(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <ReminderDialog
+        key={
+          reminderTarget
+            ? `rec-${reminderTarget.id}-${reminderTarget.existing?.reminderId ?? 'new'}`
+            : 'rec-idle'
+        }
+        open={reminderTarget !== null}
+        onOpenChange={(open) => !open && setReminderTarget(null)}
+        target={
+          reminderTarget
+            ? {
+                id: reminderTarget.id,
+                label: reminderTarget.label,
+                titulo: reminderTarget.titulo,
+                tablaOrigen: 'recepcion',
+                existing: reminderTarget.existing,
+              }
+            : null
+        }
+        onSubmit={handleSaveReminder}
       />
     </>
   )

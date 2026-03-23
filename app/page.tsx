@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { cn } from '@/lib/utils'
 import { Card, CardContent } from '@/components/ui/card'
-import { FileText, Users, AlertCircle, ScrollText, Bell } from 'lucide-react'
+import { FileText, Users, AlertCircle, ScrollText, Bell, AlertTriangle } from 'lucide-react'
 import RecepcionSection from '@/components/modules/RecepcionSection'
 
 export default function Dashboard() {
@@ -12,7 +13,8 @@ export default function Dashboard() {
     personaJuridica: 0,
     afectacion: 0,
     leyPierri: 0,
-    recordatorios: 0
+    recordatorios: 0,
+    recordatoriosUrgentes: false,
   })
   useEffect(() => {
     fetchStats()
@@ -80,21 +82,57 @@ export default function Dashboard() {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
           {modules.map((module) => {
             const Icon = module.icon
+            const isUrgentRecordatorios =
+              module.id === 'recordatorios' && stats.recordatoriosUrgentes
             return (
               <Link key={module.id} href={module.href}>
-                <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
-                  <CardContent className="p-4 flex items-center gap-3">
-                    <div className={`${module.color} p-2 rounded-lg flex-shrink-0`}>
-                      <Icon className="h-5 w-5 text-white" />
+                <Card
+                  className={cn(
+                    'hover:shadow-md transition-shadow cursor-pointer h-full',
+                    isUrgentRecordatorios &&
+                      'ring-2 ring-red-500 ring-offset-2 ring-offset-background shadow-md',
+                  )}
+                >
+                  <CardContent
+                    className={cn(
+                      'p-4 flex gap-3',
+                      isUrgentRecordatorios ? 'flex-col' : 'items-center',
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        'flex items-center gap-3 min-w-0',
+                        isUrgentRecordatorios && 'w-full',
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          'p-2 rounded-lg flex-shrink-0',
+                          isUrgentRecordatorios
+                            ? 'bg-red-600 animate-bell-attention'
+                            : module.color,
+                        )}
+                      >
+                        <Icon className="h-5 w-5 text-white" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-2xl font-bold text-foreground leading-none">
+                          {module.count}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate mt-1">
+                          {module.title}
+                        </p>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-2xl font-bold text-foreground leading-none">
-                        {module.count}
-                      </p>
-                      <p className="text-xs text-muted-foreground truncate mt-1">
-                        {module.title}
-                      </p>
-                    </div>
+                    {isUrgentRecordatorios && (
+                      <div className="flex w-full items-center justify-center gap-2 border-t border-red-200 pt-2.5 text-center text-xs font-semibold text-red-600 sm:text-sm">
+                        <AlertTriangle
+                          className="h-4 w-4 shrink-0 text-red-600 animate-bell-attention"
+                          aria-hidden
+                        />
+                        <span>Alerta: Ver Recordatorios !!!</span>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </Link>

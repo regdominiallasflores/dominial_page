@@ -1,18 +1,27 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Loader2 } from 'lucide-react'
 
-interface Props {
-  onSuccess: () => void
-  onCancel?: () => void
+export type PersonaJuridicaEditRecord = {
+  id: string
+  ingreso?: string | null
+  legajo?: string | null
+  expediente?: string | null
+  denominacion?: string | null
+  tramite?: string | null
+  resolucion?: string | null
+  fecha_resolucion?: string | null
+  observaciones?: string | null
+  notificado?: boolean | null
+  representante?: string | null
+  telefono?: string | null
 }
 
-export default function PersonaJuridicaForm({ onSuccess, onCancel }: Props) {
-  const [loading, setLoading] = useState(false)
-  const [formData, setFormData] = useState({
+function createEmptyForm() {
+  return {
     ingreso: new Date().toISOString().split('T')[0],
     legajo: '',
     expediente: '',
@@ -23,8 +32,45 @@ export default function PersonaJuridicaForm({ onSuccess, onCancel }: Props) {
     observaciones: '',
     notificado: false,
     representante: '',
-    telefono: ''
-  })
+    telefono: '',
+  }
+}
+
+function recordToForm(r: PersonaJuridicaEditRecord) {
+  const d = (v: unknown) => (v == null || v === '' ? '' : String(v).slice(0, 10))
+  return {
+    ingreso: d(r.ingreso) || new Date().toISOString().split('T')[0],
+    legajo: String(r.legajo ?? ''),
+    expediente: String(r.expediente ?? ''),
+    denominacion: String(r.denominacion ?? ''),
+    tramite: String(r.tramite ?? ''),
+    resolucion: String(r.resolucion ?? ''),
+    fecha_resolucion: d(r.fecha_resolucion),
+    observaciones: String(r.observaciones ?? ''),
+    notificado: Boolean(r.notificado),
+    representante: String(r.representante ?? ''),
+    telefono: String(r.telefono ?? ''),
+  }
+}
+
+interface Props {
+  onSuccess: () => void
+  onCancel?: () => void
+  editRecord?: PersonaJuridicaEditRecord | null
+}
+
+export default function PersonaJuridicaForm({ onSuccess, onCancel, editRecord }: Props) {
+  const [loading, setLoading] = useState(false)
+  const [formData, setFormData] = useState(createEmptyForm)
+  const isEdit = Boolean(editRecord?.id)
+
+  useEffect(() => {
+    if (editRecord?.id) {
+      setFormData(recordToForm(editRecord))
+    } else {
+      setFormData(createEmptyForm())
+    }
+  }, [editRecord])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target as any
@@ -40,32 +86,24 @@ export default function PersonaJuridicaForm({ onSuccess, onCancel }: Props) {
 
     try {
       const supabase = createClient()
-      const dataToInsert = {
+      const payload = {
         ...formData,
-        fecha_resolucion: formData.fecha_resolucion ? formData.fecha_resolucion : null
+        fecha_resolucion: formData.fecha_resolucion ? formData.fecha_resolucion : null,
       }
-      const { error } = await supabase.from('persona_juridica').insert([dataToInsert])
-
-      if (error) throw error
-
-      alert('Trámite creado exitosamente')
-      setFormData({
-        ingreso: new Date().toISOString().split('T')[0],
-        legajo: '',
-        expediente: '',
-        denominacion: '',
-        tramite: '',
-        resolucion: '',
-        fecha_resolucion: '',
-        observaciones: '',
-        notificado: false,
-        representante: '',
-        telefono: ''
-      })
+      if (isEdit && editRecord) {
+        const { error } = await supabase.from('persona_juridica').update(payload).eq('id', editRecord.id)
+        if (error) throw error
+        alert('Trámite actualizado')
+      } else {
+        const { error } = await supabase.from('persona_juridica').insert([payload])
+        if (error) throw error
+        alert('Trámite creado exitosamente')
+        setFormData(createEmptyForm())
+      }
       onSuccess()
     } catch (err) {
       console.error('Error:', err)
-      alert('Error al crear el trámite')
+      alert(isEdit ? 'Error al actualizar el trámite' : 'Error al crear el trámite')
     } finally {
       setLoading(false)
     }
@@ -207,7 +245,7 @@ export default function PersonaJuridicaForm({ onSuccess, onCancel }: Props) {
       <div className="flex flex-wrap gap-2">
         <Button type="submit" disabled={loading} className="bg-purple-600 hover:bg-purple-700">
           {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-          Guardar Trámite
+          {isEdit ? 'Guardar cambios' : 'Guardar Trámite'}
         </Button>
         {onCancel && (
           <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
