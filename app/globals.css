@@ -144,6 +144,60 @@
   }
 }
 
+@layer components {
+  /**
+   * Contenedor de página: max-width + centrado + padding lateral explícito (CSS puro,
+   * sin @apply) para que en escritorio siempre haya aire respecto al borde del viewport.
+   */
+  .page-container {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 80rem; /* ~max-w-7xl */
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  @media (min-width: 640px) {
+    .page-container {
+      padding-left: 1.25rem;
+      padding-right: 1.25rem;
+    }
+  }
+  @media (min-width: 768px) {
+    .page-container {
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+  }
+  @media (min-width: 1024px) {
+    .page-container {
+      padding-left: 2rem;
+      padding-right: 2rem;
+    }
+  }
+
+  /** Recordatorio pendiente (fecha a más de 1 día): verde, sin titileo. */
+  .reminder-bell-active-btn {
+    @apply bg-emerald-600 text-white shadow-md hover:bg-emerald-700 hover:text-white;
+    transition-property: background-color, color, box-shadow;
+    transition-duration: 150ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /**
+   * Hoy, mañana o vencido (misma urgencia que card Recordatorios en inicio).
+   * Animación `bell-attention` como el icono rojo del dashboard.
+   */
+  .reminder-bell-urgent-btn {
+    @apply bg-red-600 text-white shadow-md hover:bg-red-700 hover:text-white;
+    animation: bell-attention 0.95s ease-in-out infinite;
+    transition-property: background-color, color, box-shadow;
+    transition-duration: 150ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
 @layer utilities {
   .animate-bell-attention {
     animation: bell-attention 0.95s ease-in-out infinite;

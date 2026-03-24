@@ -77,9 +77,9 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-6">
+      <div className="page-container py-6">
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+        <div className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-5">
           {modules.map((module) => {
             const Icon = module.icon
             const isUrgentRecordatorios =
@@ -88,14 +88,14 @@ export default function Dashboard() {
               <Link key={module.id} href={module.href}>
                 <Card
                   className={cn(
-                    'hover:shadow-md transition-shadow cursor-pointer h-full',
+                    'h-full gap-0 py-0 hover:shadow-md transition-shadow cursor-pointer',
                     isUrgentRecordatorios &&
                       'ring-2 ring-red-500 ring-offset-2 ring-offset-background shadow-md',
                   )}
                 >
                   <CardContent
                     className={cn(
-                      'p-4 flex gap-3',
+                      'flex gap-3 p-4',
                       isUrgentRecordatorios ? 'flex-col' : 'items-center',
                     )}
                   >
@@ -125,12 +125,15 @@ export default function Dashboard() {
                       </div>
                     </div>
                     {isUrgentRecordatorios && (
-                      <div className="flex w-full items-center justify-center gap-2 border-t border-red-200 pt-2.5 text-center text-xs font-semibold text-red-600 sm:text-sm">
-                        <AlertTriangle
-                          className="h-4 w-4 shrink-0 text-red-600 animate-bell-attention"
-                          aria-hidden
-                        />
-                        <span>Alerta: Ver Recordatorios !!!</span>
+                      <div className="flex w-full flex-col gap-1 border-t border-red-200 pt-2.5 text-xs font-semibold text-red-600 sm:text-sm">
+                        <div className="flex items-center justify-center gap-2">
+                          <AlertTriangle
+                            className="h-4 w-4 shrink-0 text-red-600 animate-bell-attention"
+                            aria-hidden
+                          />
+                          <span>Alerta</span>
+                        </div>
+                        <p className="text-center leading-tight">Ver Recordatorios</p>
                       </div>
                     )}
                   </CardContent>

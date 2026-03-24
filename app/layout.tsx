@@ -12,23 +12,10 @@ const _geistMono = Geist_Mono({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: `${ORGANIZATION_TITLE} — Las Flores`,
   description: `Sistema de gestión de expedientes de la ${ORGANIZATION_TITLE} del Municipio de Las Flores`,
-  generator: 'v0.app',
   icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
-    apple: '/apple-icon.png',
+    icon: [{ url: '/logo.png', type: 'image/png' }],
+    apple: '/logo.png',
+    shortcut: '/logo.png',
   },
 }
 
@@ -42,7 +29,7 @@ export default function RootLayout({
       <body className="font-sans antialiased bg-background">
         <Header />
         <Navbar />
-        <main>
+        <main className="min-w-0">
           {children}
         </main>
         <Analytics />

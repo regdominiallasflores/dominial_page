@@ -2,6 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import {
+  AFECTACION_ESTADOS,
+  isAfectacionEstado,
+} from '@/lib/afectacion-estados'
 import { Button } from '@/components/ui/button'
 import { Loader2 } from 'lucide-react'
 
@@ -26,7 +30,7 @@ function createEmptyForm() {
     expediente: '',
     afectante: '',
     link_documentacion: '',
-    estado: 'Pendiente',
+    estado: 'Oficina',
     fecha_resolucion: '',
     link_descarga: '',
     observaciones: '',
@@ -43,7 +47,7 @@ function recordToForm(r: AfectacionEditRecord) {
     expediente: String(r.expediente ?? ''),
     afectante: String(r.afectante ?? ''),
     link_documentacion: String(r.link_documentacion ?? ''),
-    estado: String(r.estado ?? 'Pendiente'),
+    estado: String(r.estado ?? ''),
     fecha_resolucion: d(r.fecha_resolucion),
     link_descarga: String(r.link_descarga ?? ''),
     observaciones: String(r.observaciones ?? ''),
@@ -88,6 +92,7 @@ export default function AfectacionForm({ onSuccess, onCancel, editRecord }: Prop
       const supabase = createClient()
       const payload = {
         ...formData,
+        estado: formData.estado.trim() || null,
         fecha_resolucion: formData.fecha_resolucion ? formData.fecha_resolucion : null,
       }
       if (isEdit && editRecord) {
@@ -179,11 +184,17 @@ export default function AfectacionForm({ onSuccess, onCancel, editRecord }: Prop
             name="estado"
             value={formData.estado}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-input rounded-md bg-background"
+            className="w-full px-3 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
           >
-            <option value="Pendiente">Pendiente</option>
-            <option value="En Proceso">En Proceso</option>
-            <option value="Resuelto">Resuelto</option>
+            {!isAfectacionEstado(formData.estado) && formData.estado.trim() !== '' ? (
+              <option value={formData.estado}>{formData.estado} (valor anterior)</option>
+            ) : null}
+            <option value="">Seleccionar estado</option>
+            {AFECTACION_ESTADOS.map((est) => (
+              <option key={est} value={est}>
+                {est}
+              </option>
+            ))}
           </select>
         </div>
         <div>

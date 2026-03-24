@@ -4,7 +4,11 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getSupabaseEnvStatus, isSupabaseConfigured } from '@/lib/supabase/credentials'
 import { formatSupabaseError } from '@/lib/supabase/format-error'
-import { getPendingRemindersByRegistro, type PendingReminderInfo } from '@/lib/reminders'
+import {
+  getPendingRemindersByRegistro,
+  getReminderBellButtonClass,
+  type PendingReminderInfo,
+} from '@/lib/reminders'
 import { cn } from '@/lib/utils'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -314,7 +318,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...`}
                 <td className="px-4 py-3">
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                     item.estado === 'Pendiente' ? 'bg-yellow-100 text-yellow-800' :
-                    item.estado === 'Resuelto' ? 'bg-green-100 text-green-800' :
+                    item.estado === 'Resuelto' ? 'bg-emerald-600 text-white' :
                     'bg-blue-100 text-blue-800'
                   }`}>
                     {item.estado}
@@ -340,10 +344,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...`}
                         ? 'Editar recordatorio'
                         : 'Agregar recordatorio'
                     }
-                    className={cn(
-                      pendingReminders.has(item.id) &&
-                        'bg-amber-100 text-amber-700 hover:bg-amber-200 hover:text-amber-800',
-                    )}
+                    className={cn(getReminderBellButtonClass(pendingReminders, item.id))}
                   >
                     <Bell className="h-4 w-4" />
                   </Button>

@@ -7,7 +7,11 @@ import { Input } from '@/components/ui/input'
 import { Search, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-export default function HeaderSearch() {
+type Props = {
+  className?: string
+}
+
+export default function HeaderSearch({ className }: Props) {
   const router = useRouter()
   const [searchTerm, setSearchTerm] = useState('')
 
@@ -25,9 +29,13 @@ export default function HeaderSearch() {
   return (
     <form
       onSubmit={handleSearch}
-      className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end md:max-w-xl md:flex-1"
+      className={cn(
+        'flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-2',
+        'lg:max-w-xl lg:justify-end',
+        className,
+      )}
     >
-      <div className="relative min-w-0 flex-1 sm:max-w-md">
+      <div className="relative min-w-0 w-full flex-1">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           type="text"
@@ -50,7 +58,7 @@ export default function HeaderSearch() {
           </button>
         )}
       </div>
-      <Button type="submit" size="sm" variant="secondary" className="shrink-0 sm:w-auto">
+      <Button type="submit" size="sm" variant="secondary" className="h-9 w-full shrink-0 sm:w-auto">
         Buscar
       </Button>
     </form>

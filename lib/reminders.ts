@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
+import { isReminderDateUrgent } from '@/lib/reminder-dates'
 
 /** Datos del recordatorio pendiente más reciente por registro (para resaltar campana y edición). */
 export type PendingReminderInfo = {
@@ -35,4 +36,33 @@ export async function getPendingRemindersByRegistro(
     })
   }
   return map
+}
+
+export function isPendingReminderUrgent(info: PendingReminderInfo | undefined): boolean {
+  if (!info?.fecha_recordatorio) return false
+  return isReminderDateUrgent(info.fecha_recordatorio)
+}
+
+/**
+ * Recordatorio pendiente lejano: verde, campana blanca, sin animación.
+ * @see `.reminder-bell-active-btn` en `globals.css`
+ */
+export const REMINDER_BELL_ACTIVE_BUTTON_CLASS = 'reminder-bell-active-btn'
+
+/**
+ * Hoy, mañana o vencido (`días <= 1`): rojo como la card de inicio, campana blanca, animación tipo dashboard.
+ * @see `.reminder-bell-urgent-btn` en `globals.css`
+ */
+export const REMINDER_BELL_URGENT_BUTTON_CLASS = 'reminder-bell-urgent-btn'
+
+/** Clases del botón campana según haya recordatorio y si la fecha es urgente (`días <= 1`). */
+export function getReminderBellButtonClass(
+  pendingReminders: Map<string, PendingReminderInfo>,
+  registroId: string,
+): string | undefined {
+  const info = pendingReminders.get(registroId)
+  if (!info) return undefined
+  return isPendingReminderUrgent(info)
+    ? REMINDER_BELL_URGENT_BUTTON_CLASS
+    : REMINDER_BELL_ACTIVE_BUTTON_CLASS
 }

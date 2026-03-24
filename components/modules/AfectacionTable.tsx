@@ -1,12 +1,16 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { getPendingRemindersByRegistro, type PendingReminderInfo } from '@/lib/reminders'
+import {
+  getPendingRemindersByRegistro,
+  getReminderBellButtonClass,
+  type PendingReminderInfo,
+} from '@/lib/reminders'
 import { cn } from '@/lib/utils'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Trash2, Bell, Download, Edit2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpDown, Bell, Download, Edit2, Trash2 } from 'lucide-react'
 import {
   RecordDetailDrawer,
   detailLink,
@@ -21,6 +25,52 @@ import {
 } from '@/components/ui/dialog'
 import AfectacionForm from '@/components/modules/AfectacionForm'
 import ReminderDialog from '@/components/modules/ReminderDialog'
+import {
+  AFECTACION_ESTADOS,
+  isAfectacionEstado,
+  isAfectacionResueltoEstado,
+  type AfectacionEstado,
+} from '@/lib/afectacion-estados'
+
+type SortColumn = 'fecha_ingreso' | 'afectante' | 'estado' | 'notificado'
+
+function estadoSortRankAfectacion(r: Afectacion) {
+  const t = r.estado?.trim() ?? ''
+  if (!t) return -1
+  if (isAfectacionResueltoEstado(t)) return AFECTACION_ESTADOS.indexOf('Resuelto')
+  const i = AFECTACION_ESTADOS.indexOf(t as AfectacionEstado)
+  return i >= 0 ? i : 999
+}
+
+function compareAfectacionRows(
+  a: Afectacion,
+  b: Afectacion,
+  sortCol: SortColumn | null,
+  sortDir: 'asc' | 'desc',
+) {
+  const ar = isAfectacionResueltoEstado(a.estado)
+  const br = isAfectacionResueltoEstado(b.estado)
+  if (ar !== br) return ar ? 1 : -1
+
+  let cmp = 0
+  if (sortCol === 'fecha_ingreso') {
+    cmp = (a.fecha_ingreso || '').localeCompare(b.fecha_ingreso || '')
+  } else if (sortCol === 'afectante') {
+    cmp = (a.afectante || '').localeCompare(b.afectante || '', 'es', {
+      sensitivity: 'base',
+      numeric: true,
+    })
+  } else if (sortCol === 'estado') {
+    cmp =
+      estadoSortRankAfectacion(a) - estadoSortRankAfectacion(b) ||
+      (a.estado || '').localeCompare(b.estado || '', 'es', { sensitivity: 'base' })
+  } else if (sortCol === 'notificado') {
+    cmp = Number(a.notificado) - Number(b.notificado)
+  } else {
+    cmp = (b.fecha_ingreso || '').localeCompare(a.fecha_ingreso || '')
+  }
+  return sortDir === 'asc' ? cmp : -cmp
+}
 
 interface Afectacion {
   id: string
@@ -70,6 +120,51 @@ export default function AfectacionTable({ searchTerm }: Props) {
     titulo: string
     existing: PendingReminderInfo | null
   } | null>(null)
+  const [sort, setSort] = useState<{ col: SortColumn | null; dir: 'asc' | 'desc' }>({
+    col: null,
+    dir: 'desc',
+  })
+
+  const displayData = useMemo(
+    () => [...data].sort((a, b) => compareAfectacionRows(a, b, sort.col, sort.dir)),
+    [data, sort.col, sort.dir],
+  )
+
+  const handleSortClick = (col: SortColumn) => {
+    setSort((s) =>
+      s.col === col ? { col, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { col, dir: 'asc' },
+    )
+  }
+
+  const SortHeading = ({
+    column,
+    children,
+  }: {
+    column: SortColumn
+    children: ReactNode
+  }) => {
+    const active = sort.col === column
+    return (
+      <th className="px-4 py-3 text-left">
+        <button
+          type="button"
+          className="inline-flex items-center gap-1 font-semibold text-foreground hover:underline"
+          onClick={() => handleSortClick(column)}
+        >
+          {children}
+          {active ? (
+            sort.dir === 'asc' ? (
+              <ArrowUp className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            ) : (
+              <ArrowDown className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            )
+          ) : (
+            <ArrowUpDown className="h-3.5 w-3.5 shrink-0 opacity-40" aria-hidden />
+          )}
+        </button>
+      </th>
+    )
+  }
 
   useEffect(() => {
     fetchData()
@@ -113,7 +208,7 @@ export default function AfectacionTable({ searchTerm }: Props) {
       const supabase = createClient()
       const { error } = await supabase.from('afectacion').delete().eq('id', id)
       if (error) throw error
-      setData(data.filter(item => item.id !== id))
+      setData((prev) => prev.filter((item) => item.id !== id))
       setSelected((s) => (s?.id === id ? null : s))
       setEditing((s) => (s?.id === id ? null : s))
       setPendingReminders((prev) => {
@@ -178,6 +273,61 @@ export default function AfectacionTable({ searchTerm }: Props) {
     }
   }
 
+  const patchRow = (id: string, patch: Partial<Afectacion>) => {
+    setData((prev) => prev.map((row) => (row.id === id ? { ...row, ...patch } : row)))
+    setSelected((s) => (s?.id === id ? { ...s, ...patch } : s))
+    setEditing((e) => (e?.id === id ? { ...e, ...patch } : e))
+  }
+
+  const handleEstadoChange = async (id: string, value: string) => {
+    const estado = value.trim() === '' ? null : value.trim()
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.from('afectacion').update({ estado }).eq('id', id)
+      if (error) throw error
+      patchRow(id, { estado: estado ?? '' })
+    } catch (err) {
+      console.error('Error:', err)
+      alert('No se pudo actualizar el estado')
+    }
+  }
+
+  const handleNotificadoChange = async (id: string, notificado: boolean) => {
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.from('afectacion').update({ notificado }).eq('id', id)
+      if (error) throw error
+      patchRow(id, { notificado })
+    } catch (err) {
+      console.error('Error:', err)
+      alert('No se pudo actualizar notificado')
+    }
+  }
+
+  const cellStopDrawer = (e: { stopPropagation(): void }) => {
+    e.stopPropagation()
+  }
+
+  const estadoSelectDisplayClasses = (raw: string) => {
+    const t = raw?.trim() ?? ''
+    if (!t) return 'bg-muted text-muted-foreground'
+    if (isAfectacionResueltoEstado(t)) {
+      return 'bg-emerald-600 font-semibold text-white shadow-sm ring-1 ring-emerald-700/40 hover:bg-emerald-700 dark:bg-emerald-600 dark:text-white dark:hover:bg-emerald-700'
+    }
+    const k = t.toLowerCase()
+    if (k === 'oficina') return 'bg-slate-100 text-slate-800'
+    if (k === 'trabajando') return 'bg-blue-100 text-blue-800'
+    if (k === 'observado') return 'bg-amber-100 text-amber-800'
+    if (k === 'rechazado') return 'bg-rose-100 text-rose-800'
+    if (!isAfectacionEstado(t)) return 'bg-amber-100 text-amber-800'
+    return 'bg-blue-100 text-blue-800'
+  }
+
+  const notificadoSelectClasses = (notificado: boolean) =>
+    notificado
+      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200'
+      : 'bg-gray-100 text-gray-800 dark:bg-muted dark:text-muted-foreground'
+
   if (loading) {
     return (
       <Card>
@@ -204,34 +354,76 @@ export default function AfectacionTable({ searchTerm }: Props) {
         <table className="w-full text-sm">
           <thead className="border-b border-border bg-muted">
             <tr>
-              <th className="text-left px-4 py-3 font-semibold">Fecha</th>
-              <th className="text-left px-4 py-3 font-semibold">Expediente</th>
-              <th className="text-left px-4 py-3 font-semibold">Afectante</th>
-              <th className="text-left px-4 py-3 font-semibold">Estado</th>
-              <th className="text-left px-4 py-3 font-semibold">Representante</th>
-              <th className="text-center px-4 py-3 font-semibold">Acciones</th>
+              <SortHeading column="fecha_ingreso">Fecha</SortHeading>
+              <th className="px-4 py-3 text-left font-semibold">Expediente</th>
+              <SortHeading column="afectante">Afectante</SortHeading>
+              <SortHeading column="estado">Estado</SortHeading>
+              <SortHeading column="notificado">Notificado</SortHeading>
+              <th className="px-4 py-3 text-center font-semibold">Acciones</th>
             </tr>
           </thead>
           <tbody>
-            {data.map((item) => (
+            {displayData.map((item) => (
               <tr
                 key={item.id}
-                className="border-b border-border hover:bg-muted/50 cursor-pointer"
+                className={cn(
+                  'cursor-pointer border-b border-border transition-colors',
+                  isAfectacionResueltoEstado(item.estado)
+                    ? 'bg-emerald-100 [&>td]:bg-emerald-100 hover:bg-emerald-200 hover:[&>td]:bg-emerald-200 dark:bg-emerald-950/55 dark:[&>td]:bg-emerald-950/55 dark:hover:bg-emerald-900/65 dark:hover:[&>td]:bg-emerald-900/65'
+                    : 'hover:bg-muted/50',
+                )}
                 onClick={() => setSelected(item)}
               >
-                <td className="px-4 py-3">{item.fecha_ingreso}</td>
+                <td className="px-4 py-3 tabular-nums text-muted-foreground">{item.fecha_ingreso}</td>
                 <td className="px-4 py-3 font-medium">{item.expediente}</td>
                 <td className="px-4 py-3">{item.afectante}</td>
-                <td className="px-4 py-3">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    item.estado === 'Pendiente' ? 'bg-yellow-100 text-yellow-800' :
-                    item.estado === 'Resuelto' ? 'bg-green-100 text-green-800' :
-                    'bg-blue-100 text-blue-800'
-                  }`}>
-                    {item.estado}
-                  </span>
+                <td
+                  className="px-4 py-3"
+                  onClick={cellStopDrawer}
+                  onPointerDown={cellStopDrawer}
+                >
+                  <select
+                    aria-label="Cambiar estado"
+                    value={item.estado ?? ''}
+                    title="Cambiar estado"
+                    onChange={(e) => void handleEstadoChange(item.id, e.target.value)}
+                    className={cn(
+                      'max-w-[11rem] cursor-pointer rounded-full border-0 py-1 pl-2 pr-7 text-xs font-medium shadow-sm ring-1 ring-black/5 focus:outline-none focus:ring-2 focus:ring-emerald-500/60',
+                      estadoSelectDisplayClasses(item.estado ?? ''),
+                    )}
+                  >
+                    {!isAfectacionEstado(item.estado ?? '') && (item.estado ?? '').trim() !== '' ? (
+                      <option value={item.estado}>{item.estado} (valor anterior)</option>
+                    ) : null}
+                    <option value="">Sin estado</option>
+                    {AFECTACION_ESTADOS.map((estado) => (
+                      <option key={estado} value={estado}>
+                        {estado}
+                      </option>
+                    ))}
+                  </select>
                 </td>
-                <td className="px-4 py-3">{item.representante}</td>
+                <td
+                  className="px-4 py-3"
+                  onClick={cellStopDrawer}
+                  onPointerDown={cellStopDrawer}
+                >
+                  <select
+                    aria-label="Cambiar notificado"
+                    value={item.notificado ? 'true' : 'false'}
+                    title="Marcar si fue notificado"
+                    onChange={(e) =>
+                      void handleNotificadoChange(item.id, e.target.value === 'true')
+                    }
+                    className={cn(
+                      'cursor-pointer rounded-full border-0 py-1 pl-2 pr-6 text-xs font-medium shadow-sm ring-1 ring-black/5 focus:outline-none focus:ring-2 focus:ring-emerald-500/60',
+                      notificadoSelectClasses(item.notificado),
+                    )}
+                  >
+                    <option value="false">No</option>
+                    <option value="true">Sí</option>
+                  </select>
+                </td>
                 <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                   <div className="flex gap-2 justify-center">
                     <Button
@@ -258,10 +450,7 @@ export default function AfectacionTable({ searchTerm }: Props) {
                         ? 'Editar recordatorio'
                         : 'Agregar recordatorio'
                     }
-                    className={cn(
-                      pendingReminders.has(item.id) &&
-                        'bg-amber-100 text-amber-700 hover:bg-amber-200 hover:text-amber-800',
-                    )}
+                    className={cn(getReminderBellButtonClass(pendingReminders, item.id))}
                   >
                     <Bell className="h-4 w-4" />
                   </Button>

@@ -183,7 +183,7 @@ export default function RecepcionForm({ onSuccess, onCancel, editRecord }: Props
             name="estado"
             value={formData.estado}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-input rounded-md bg-background"
+            className="w-full px-3 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
           >
             <option value="Pendiente">Pendiente</option>
             <option value="En Proceso">En Proceso</option>

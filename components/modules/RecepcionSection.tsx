@@ -28,15 +28,15 @@ export default function RecepcionSection({ onMutationSuccess }: Props) {
         title="Recepción"
         subtitle="Consultas recepcionadas"
         searchPlaceholder="Buscar por nombre, tema, estado..."
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
+        onSearchSubmit={setSearchTerm}
         onToggleForm={() => setShowForm(!showForm)}
+        newEntryLabel="Nueva Consulta"
       />
 
       {showForm && (
         <Card className="mb-6">
           <CardContent className="pt-6">
-            <h3 className="text-lg font-semibold mb-4">Nuevo Trámite de Recepción</h3>
+            <h3 className="text-lg font-semibold mb-4">Nueva consulta de recepción</h3>
             <RecepcionForm onSuccess={handleAddSuccess} onCancel={() => setShowForm(false)} />
           </CardContent>
         </Card>

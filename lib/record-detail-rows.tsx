@@ -43,7 +43,7 @@ function personaJuridicaRows(r: Record<string, unknown>): DetailRow[] {
     { label: 'Expediente', value: formatDetailValue(r.expediente) },
     { label: 'Denominación', value: formatDetailValue(r.denominacion) },
     { label: 'Trámite', value: formatDetailValue(r.tramite) },
-    { label: 'Resolución', value: formatDetailValue(r.resolucion) },
+    { label: 'Estado', value: formatDetailValue(r.resolucion) },
     { label: 'Fecha de resolución', value: formatDetailValue(r.fecha_resolucion) },
     { label: 'Observaciones', value: formatDetailValue(r.observaciones) },
     { label: 'Notificado', value: formatDetailValue(r.notificado) },
@@ -77,8 +77,6 @@ function leyPierriRows(r: Record<string, unknown>): DetailRow[] {
     { label: 'Observaciones', value: formatDetailValue(r.observaciones) },
     { label: 'Documentación', value: detailLink(r.link_documentacion as string | undefined) },
     { label: 'Estado', value: formatDetailValue(r.estado) },
-    { label: 'Enviado', value: formatDetailValue(r.enviado) },
-    { label: 'Fecha de envío', value: formatDetailValue(r.fecha_envio) },
     { label: 'Escribanía', value: formatDetailValue(r.escribania) },
   ]
 }

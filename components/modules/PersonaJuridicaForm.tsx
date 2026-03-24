@@ -2,6 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import {
+  PERSONA_JURIDICA_ESTADOS,
+  isPersonaJuridicaEstado,
+} from '@/lib/persona-juridica-estados'
 import { Button } from '@/components/ui/button'
 import { Loader2 } from 'lucide-react'
 
@@ -27,7 +31,7 @@ function createEmptyForm() {
     expediente: '',
     denominacion: '',
     tramite: '',
-    resolucion: '',
+    resolucion: 'Iniciado',
     fecha_resolucion: '',
     observaciones: '',
     notificado: false,
@@ -88,6 +92,7 @@ export default function PersonaJuridicaForm({ onSuccess, onCancel, editRecord }:
       const supabase = createClient()
       const payload = {
         ...formData,
+        resolucion: formData.resolucion.trim() || null,
         fecha_resolucion: formData.fecha_resolucion ? formData.fecha_resolucion : null,
       }
       if (isEdit && editRecord) {
@@ -195,14 +200,25 @@ export default function PersonaJuridicaForm({ onSuccess, onCancel, editRecord }:
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Resolución</label>
-          <input
-            type="text"
+          <label className="block text-sm font-medium mb-1">Estado</label>
+          <select
             name="resolucion"
             value={formData.resolucion}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-input rounded-md bg-background"
-          />
+            className="w-full px-3 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+          >
+            {!isPersonaJuridicaEstado(formData.resolucion) && formData.resolucion.trim() !== '' ? (
+              <option value={formData.resolucion}>
+                {formData.resolucion} (valor anterior)
+              </option>
+            ) : null}
+            <option value="">Seleccionar estado</option>
+            {PERSONA_JURIDICA_ESTADOS.map((estado) => (
+              <option key={estado} value={estado}>
+                {estado}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 

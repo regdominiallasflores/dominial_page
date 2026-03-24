@@ -65,7 +65,7 @@ export async function GET() {
           telefono TEXT,
           observaciones TEXT,
           link_documentacion TEXT,
-          estado TEXT DEFAULT 'Pendiente',
+          estado TEXT DEFAULT 'Oficina',
           enviado BOOLEAN DEFAULT FALSE,
           fecha_envio DATE,
           escribania TEXT,

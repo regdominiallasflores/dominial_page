@@ -1,12 +1,16 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { getPendingRemindersByRegistro, type PendingReminderInfo } from '@/lib/reminders'
+import {
+  getPendingRemindersByRegistro,
+  getReminderBellButtonClass,
+  type PendingReminderInfo,
+} from '@/lib/reminders'
 import { cn } from '@/lib/utils'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Trash2, Bell, Download, Send, Edit2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpDown, Trash2, Bell, Download, Edit2 } from 'lucide-react'
 import {
   RecordDetailDrawer,
   detailLink,
@@ -21,6 +25,13 @@ import {
 } from '@/components/ui/dialog'
 import LeyPierriForm from '@/components/modules/LeyPierriForm'
 import ReminderDialog from '@/components/modules/ReminderDialog'
+import {
+  LEY_PIERRI_ESCRIBANIAS,
+  LEY_PIERRI_ESTADOS,
+  isLeyPierriEstado,
+  isLeyPierriEscribaniaEstadoRow,
+  type LeyPierriEstado,
+} from '@/lib/ley-pierri-constants'
 
 interface LeyPierri {
   id: string
@@ -31,13 +42,53 @@ interface LeyPierri {
   observaciones: string
   link_documentacion: string
   estado: string
-  enviado: boolean
-  fecha_envio: string
   escribania: string
 }
 
 interface Props {
   searchTerm: string
+}
+
+type SortColumn = 'fecha_ingreso' | 'beneficiarios' | 'estado' | 'escribania'
+
+function estadoSortRankPierri(r: LeyPierri) {
+  const t = r.estado?.trim() ?? ''
+  if (!t) return -1
+  const i = LEY_PIERRI_ESTADOS.indexOf(t as LeyPierriEstado)
+  return i >= 0 ? i : 999
+}
+
+function compareLeyPierriRows(
+  a: LeyPierri,
+  b: LeyPierri,
+  sortCol: SortColumn | null,
+  sortDir: 'asc' | 'desc',
+) {
+  const ar = isLeyPierriEscribaniaEstadoRow(a.estado)
+  const br = isLeyPierriEscribaniaEstadoRow(b.estado)
+  if (ar !== br) return ar ? 1 : -1
+
+  let cmp = 0
+  if (sortCol === 'fecha_ingreso') {
+    cmp = (a.fecha_ingreso || '').localeCompare(b.fecha_ingreso || '')
+  } else if (sortCol === 'beneficiarios') {
+    cmp = (a.beneficiarios || '').localeCompare(b.beneficiarios || '', 'es', {
+      sensitivity: 'base',
+      numeric: true,
+    })
+  } else if (sortCol === 'estado') {
+    cmp =
+      estadoSortRankPierri(a) - estadoSortRankPierri(b) ||
+      (a.estado || '').localeCompare(b.estado || '', 'es', { sensitivity: 'base' })
+  } else if (sortCol === 'escribania') {
+    cmp = (a.escribania || '').localeCompare(b.escribania || '', 'es', {
+      sensitivity: 'base',
+      numeric: true,
+    })
+  } else {
+    cmp = (b.fecha_ingreso || '').localeCompare(a.fecha_ingreso || '')
+  }
+  return sortDir === 'asc' ? cmp : -cmp
 }
 
 function leyPierriDetailRows(r: LeyPierri): DetailRow[] {
@@ -49,8 +100,6 @@ function leyPierriDetailRows(r: LeyPierri): DetailRow[] {
     { label: 'Observaciones', value: formatDetailValue(r.observaciones) },
     { label: 'Documentación', value: detailLink(r.link_documentacion) },
     { label: 'Estado', value: formatDetailValue(r.estado) },
-    { label: 'Enviado', value: formatDetailValue(r.enviado) },
-    { label: 'Fecha de envío', value: formatDetailValue(r.fecha_envio) },
     { label: 'Escribanía', value: formatDetailValue(r.escribania) },
     { label: 'Identificador', value: formatDetailValue(r.id) },
   ]
@@ -68,6 +117,51 @@ export default function LeyPierriTable({ searchTerm }: Props) {
     titulo: string
     existing: PendingReminderInfo | null
   } | null>(null)
+  const [sort, setSort] = useState<{ col: SortColumn | null; dir: 'asc' | 'desc' }>({
+    col: null,
+    dir: 'desc',
+  })
+
+  const displayData = useMemo(
+    () => [...data].sort((a, b) => compareLeyPierriRows(a, b, sort.col, sort.dir)),
+    [data, sort.col, sort.dir],
+  )
+
+  const handleSortClick = (col: SortColumn) => {
+    setSort((s) =>
+      s.col === col ? { col, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { col, dir: 'asc' },
+    )
+  }
+
+  const SortHeading = ({
+    column,
+    children,
+  }: {
+    column: SortColumn
+    children: ReactNode
+  }) => {
+    const active = sort.col === column
+    return (
+      <th className="px-4 py-3 text-left">
+        <button
+          type="button"
+          className="inline-flex items-center gap-1 font-semibold text-foreground hover:underline"
+          onClick={() => handleSortClick(column)}
+        >
+          {children}
+          {active ? (
+            sort.dir === 'asc' ? (
+              <ArrowUp className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            ) : (
+              <ArrowDown className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            )
+          ) : (
+            <ArrowUpDown className="h-3.5 w-3.5 shrink-0 opacity-40" aria-hidden />
+          )}
+        </button>
+      </th>
+    )
+  }
 
   useEffect(() => {
     fetchData()
@@ -88,7 +182,7 @@ export default function LeyPierriTable({ searchTerm }: Props) {
       const { data: result, error } = await query.order('fecha_ingreso', { ascending: false })
 
       if (error) throw error
-      const rows = result || []
+      const rows = (result || []) as LeyPierri[]
       setData(rows)
       try {
         const ids = rows.map((r) => r.id)
@@ -176,20 +270,56 @@ export default function LeyPierriTable({ searchTerm }: Props) {
     }
   }
 
-  const handleMarkSent = async (id: string) => {
+  const patchRow = (id: string, patch: Partial<LeyPierri>) => {
+    setData((prev) => prev.map((row) => (row.id === id ? { ...row, ...patch } : row)))
+    setSelected((s) => (s?.id === id ? { ...s, ...patch } : s))
+    setEditing((e) => (e?.id === id ? { ...e, ...patch } : e))
+  }
+
+  const handleEstadoChange = async (id: string, value: string) => {
     try {
       const supabase = createClient()
-      const { error } = await supabase
-        .from('ley_pierri')
-        .update({ enviado: true, fecha_envio: new Date().toISOString().split('T')[0] })
-        .eq('id', id)
+      const { error } = await supabase.from('ley_pierri').update({ estado: value }).eq('id', id)
       if (error) throw error
-      const fecha = new Date().toISOString().split('T')[0]
-      setData(data.map(item => item.id === id ? { ...item, enviado: true, fecha_envio: fecha } : item))
-      setSelected((s) => (s?.id === id ? { ...s, enviado: true, fecha_envio: fecha } : s))
+      patchRow(id, { estado: value })
     } catch (err) {
       console.error('Error:', err)
+      alert('No se pudo actualizar el estado')
     }
+  }
+
+  const handleEscribaniaChange = async (id: string, value: string) => {
+    const escribania = value.trim() === '' ? null : value.trim()
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.from('ley_pierri').update({ escribania }).eq('id', id)
+      if (error) throw error
+      patchRow(id, { escribania: escribania ?? '' })
+    } catch (err) {
+      console.error('Error:', err)
+      alert('No se pudo actualizar la escribanía')
+    }
+  }
+
+  const cellStopDrawer = (e: { stopPropagation(): void }) => {
+    e.stopPropagation()
+  }
+
+  const estadoSelectClasses = (raw: string) => {
+    const t = raw?.trim() ?? ''
+    if (!t) return 'bg-muted text-muted-foreground'
+    if (isLeyPierriEscribaniaEstadoRow(t)) {
+      return 'bg-emerald-600 font-semibold text-white shadow-sm ring-1 ring-emerald-700/40 hover:bg-emerald-700 dark:bg-emerald-600 dark:text-white dark:hover:bg-emerald-700'
+    }
+    if (t === 'Oficina') return 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100'
+    if (t === 'Planeamiento') return 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200'
+    return 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200'
+  }
+
+  const escribaniaSelectClasses = (raw: string | null | undefined) => {
+    const t = raw?.trim() ?? ''
+    if (!t) return 'bg-gray-100 text-gray-800 dark:bg-muted dark:text-muted-foreground'
+    return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200'
   }
 
   if (loading) {
@@ -218,39 +348,78 @@ export default function LeyPierriTable({ searchTerm }: Props) {
         <table className="w-full text-sm">
           <thead className="border-b border-border bg-muted">
             <tr>
-              <th className="text-left px-4 py-3 font-semibold">Fecha</th>
-              <th className="text-left px-4 py-3 font-semibold">Beneficiarios</th>
-              <th className="text-left px-4 py-3 font-semibold">Estado</th>
-              <th className="text-left px-4 py-3 font-semibold">Escribanía</th>
-              <th className="text-left px-4 py-3 font-semibold">Enviado</th>
-              <th className="text-center px-4 py-3 font-semibold">Acciones</th>
+              <SortHeading column="fecha_ingreso">Fecha</SortHeading>
+              <SortHeading column="beneficiarios">Beneficiarios</SortHeading>
+              <SortHeading column="estado">Estado</SortHeading>
+              <SortHeading column="escribania">Escribanía</SortHeading>
+              <th className="px-4 py-3 text-center font-semibold">Acciones</th>
             </tr>
           </thead>
           <tbody>
-            {data.map((item) => (
+            {displayData.map((item) => (
               <tr
                 key={item.id}
-                className="border-b border-border hover:bg-muted/50 cursor-pointer"
+                className={cn(
+                  'cursor-pointer border-b border-border transition-colors',
+                  isLeyPierriEscribaniaEstadoRow(item.estado)
+                    ? 'bg-emerald-100 [&>td]:bg-emerald-100 hover:bg-emerald-200 hover:[&>td]:bg-emerald-200 dark:bg-emerald-950/55 dark:[&>td]:bg-emerald-950/55 dark:hover:bg-emerald-900/65 dark:hover:[&>td]:bg-emerald-900/65'
+                    : 'hover:bg-muted/50',
+                )}
                 onClick={() => setSelected(item)}
               >
-                <td className="px-4 py-3">{item.fecha_ingreso}</td>
+                <td className="px-4 py-3 tabular-nums text-muted-foreground">{item.fecha_ingreso}</td>
                 <td className="px-4 py-3 font-medium">{item.beneficiarios}</td>
-                <td className="px-4 py-3">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    item.estado === 'Pendiente' ? 'bg-yellow-100 text-yellow-800' :
-                    item.estado === 'Completado' ? 'bg-green-100 text-green-800' :
-                    'bg-blue-100 text-blue-800'
-                  }`}>
-                    {item.estado}
-                  </span>
+                <td
+                  className="px-4 py-3"
+                  onClick={cellStopDrawer}
+                  onPointerDown={cellStopDrawer}
+                >
+                  <select
+                    aria-label="Cambiar estado"
+                    title="Cambiar estado"
+                    value={item.estado}
+                    onChange={(e) => void handleEstadoChange(item.id, e.target.value)}
+                    className={cn(
+                      'max-w-[12.5rem] cursor-pointer rounded-full border-0 py-1 pl-2 pr-7 text-xs font-medium shadow-sm ring-1 ring-black/5 focus:outline-none focus:ring-2 focus:ring-emerald-500/60',
+                      estadoSelectClasses(item.estado),
+                    )}
+                  >
+                    {item.estado && !isLeyPierriEstado(item.estado) && (
+                      <option value={item.estado}>{item.estado}</option>
+                    )}
+                    {LEY_PIERRI_ESTADOS.map((e) => (
+                      <option key={e} value={e}>
+                        {e}
+                      </option>
+                    ))}
+                  </select>
                 </td>
-                <td className="px-4 py-3 text-xs">{item.escribania}</td>
-                <td className="px-4 py-3">
-                  <span className={`px-2 py-1 rounded text-xs font-medium ${
-                    item.enviado ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                  }`}>
-                    {item.enviado ? 'Sí' : 'No'}
-                  </span>
+                <td
+                  className="px-4 py-3"
+                  onClick={cellStopDrawer}
+                  onPointerDown={cellStopDrawer}
+                >
+                  <select
+                    aria-label="Cambiar escribanía"
+                    title="Cambiar escribanía"
+                    value={item.escribania ?? ''}
+                    onChange={(e) => void handleEscribaniaChange(item.id, e.target.value)}
+                    className={cn(
+                      'max-w-[13rem] cursor-pointer rounded-full border-0 py-1 pl-2 pr-7 text-xs font-medium shadow-sm ring-1 ring-black/5 focus:outline-none focus:ring-2 focus:ring-emerald-500/60',
+                      escribaniaSelectClasses(item.escribania),
+                    )}
+                  >
+                    <option value="">—</option>
+                    {item.escribania &&
+                      !(LEY_PIERRI_ESCRIBANIAS as readonly string[]).includes(item.escribania) && (
+                        <option value={item.escribania}>{item.escribania}</option>
+                      )}
+                    {LEY_PIERRI_ESCRIBANIAS.map((e) => (
+                      <option key={e} value={e}>
+                        {e}
+                      </option>
+                    ))}
+                  </select>
                 </td>
                 <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                   <div className="flex gap-2 justify-center">
@@ -269,16 +438,6 @@ export default function LeyPierriTable({ searchTerm }: Props) {
                         </Button>
                       </a>
                     )}
-                  {!item.enviado && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleMarkSent(item.id)}
-                      title="Marcar como enviado"
-                    >
-                      <Send className="h-4 w-4" />
-                    </Button>
-                  )}
                   <Button
                     size="sm"
                     variant="ghost"
@@ -288,10 +447,7 @@ export default function LeyPierriTable({ searchTerm }: Props) {
                         ? 'Editar recordatorio'
                         : 'Agregar recordatorio'
                     }
-                    className={cn(
-                      pendingReminders.has(item.id) &&
-                        'bg-amber-100 text-amber-700 hover:bg-amber-200 hover:text-amber-800',
-                    )}
+                    className={cn(getReminderBellButtonClass(pendingReminders, item.id))}
                   >
                     <Bell className="h-4 w-4" />
                   </Button>

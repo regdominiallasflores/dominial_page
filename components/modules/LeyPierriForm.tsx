@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Loader2 } from 'lucide-react'
+import { LEY_PIERRI_ESCRIBANIAS, LEY_PIERRI_ESTADOS } from '@/lib/ley-pierri-constants'
 
 export type LeyPierriEditRecord = {
   id: string
@@ -14,8 +15,6 @@ export type LeyPierriEditRecord = {
   observaciones?: string | null
   link_documentacion?: string | null
   estado?: string | null
-  enviado?: boolean | null
-  fecha_envio?: string | null
   escribania?: string | null
 }
 
@@ -27,9 +26,7 @@ function createEmptyForm() {
     telefono: '',
     observaciones: '',
     link_documentacion: '',
-    estado: 'Pendiente',
-    enviado: false,
-    fecha_envio: '',
+    estado: 'Oficina',
     escribania: '',
   }
 }
@@ -43,9 +40,7 @@ function recordToForm(r: LeyPierriEditRecord) {
     telefono: String(r.telefono ?? ''),
     observaciones: String(r.observaciones ?? ''),
     link_documentacion: String(r.link_documentacion ?? ''),
-    estado: String(r.estado ?? 'Pendiente'),
-    enviado: Boolean(r.enviado),
-    fecha_envio: d(r.fecha_envio),
+    estado: String(r.estado ?? 'Oficina'),
     escribania: String(r.escribania ?? ''),
   }
 }
@@ -83,9 +78,16 @@ export default function LeyPierriForm({ onSuccess, onCancel, editRecord }: Props
 
     try {
       const supabase = createClient()
+      const escribania = formData.escribania.trim() === '' ? null : formData.escribania.trim()
       const payload = {
-        ...formData,
-        fecha_envio: formData.fecha_envio ? formData.fecha_envio : null,
+        fecha_ingreso: formData.fecha_ingreso,
+        beneficiarios: formData.beneficiarios,
+        direccion: formData.direccion || null,
+        telefono: formData.telefono || null,
+        observaciones: formData.observaciones || null,
+        link_documentacion: formData.link_documentacion || null,
+        estado: formData.estado,
+        escribania,
       }
       if (isEdit && editRecord) {
         const { error } = await supabase.from('ley_pierri').update(payload).eq('id', editRecord.id)
@@ -175,22 +177,38 @@ export default function LeyPierriForm({ onSuccess, onCancel, editRecord }: Props
             name="estado"
             value={formData.estado}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-input rounded-md bg-background"
+            className="w-full px-3 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
           >
-            <option value="Pendiente">Pendiente</option>
-            <option value="En Proceso">En Proceso</option>
-            <option value="Completado">Completado</option>
+            {formData.estado &&
+              !(LEY_PIERRI_ESTADOS as readonly string[]).includes(formData.estado) && (
+                <option value={formData.estado}>{formData.estado}</option>
+              )}
+            {LEY_PIERRI_ESTADOS.map((e) => (
+              <option key={e} value={e}>
+                {e}
+              </option>
+            ))}
           </select>
         </div>
         <div>
           <label className="block text-sm font-medium mb-1">Escribanía</label>
-          <input
-            type="text"
+          <select
             name="escribania"
             value={formData.escribania}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-input rounded-md bg-background"
-          />
+            className="w-full px-3 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+          >
+            <option value="">—</option>
+            {formData.escribania &&
+              !(LEY_PIERRI_ESCRIBANIAS as readonly string[]).includes(formData.escribania) && (
+                <option value={formData.escribania}>{formData.escribania}</option>
+              )}
+            {LEY_PIERRI_ESCRIBANIAS.map((e) => (
+              <option key={e} value={e}>
+                {e}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -203,33 +221,6 @@ export default function LeyPierriForm({ onSuccess, onCancel, editRecord }: Props
           rows={3}
           className="w-full px-3 py-2 border border-input rounded-md bg-background"
         />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            id="enviado"
-            name="enviado"
-            checked={formData.enviado}
-            onChange={handleChange}
-            className="w-4 h-4"
-          />
-          <label htmlFor="enviado" className="text-sm font-medium">
-            Marcar como enviado
-          </label>
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Fecha de Envío</label>
-          <input
-            type="date"
-            name="fecha_envio"
-            value={formData.fecha_envio}
-            onChange={handleChange}
-            disabled={!formData.enviado}
-            className="w-full px-3 py-2 border border-input rounded-md bg-background disabled:opacity-50"
-          />
-        </div>
       </div>
 
       <div className="flex flex-wrap gap-2">
