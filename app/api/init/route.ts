@@ -137,12 +137,7 @@ export async function GET() {
           WITH CHECK (
             role = 'superAdmin'
             AND user_id = auth.uid()
-            AND EXISTS (
-              SELECT 1
-              FROM auth.users
-              WHERE id = auth.uid()
-                AND lower(email) = lower('regdominial@lasflores.gob.ar')
-            )
+            AND lower(coalesce(auth.jwt() ->> 'email', '')) = lower('regdominial@lasflores.gob.ar')
           );
 
         -- ---------------------------------------------------------------------

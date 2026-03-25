@@ -39,19 +39,37 @@ export function useAppRole() {
         if (!mounted) return
         setEmail(user.email ?? null)
 
-        const { data: roleRow, error: roleErr } = await supabase
-          .from('app_user_roles')
-          .select('role, display_name')
-          .eq('user_id', user.id)
-          .maybeSingle()
+        const readRole = async () => {
+          return supabase
+            .from('app_user_roles')
+            .select('role, display_name')
+            .eq('user_id', user.id)
+            .maybeSingle()
+        }
+
+        let { data: roleRow, error: roleErr } = await readRole()
 
         if (roleErr) setError(roleErr.message)
 
         if (!mounted) return
 
+        const applyRow = (row: { role: string | null; display_name: string | null } | null) => {
+          const r = row?.role?.trim()
+          if (!r) return
+          const low = r.toLowerCase()
+          let normalized: AppRole | null = null
+          if (low === 'superadmin' || r === 'superAdmin') normalized = 'superAdmin'
+          else if (low === 'admin') normalized = 'admin'
+          else if (low === 'user') normalized = 'user'
+          if (!normalized) return
+          setRole(normalized)
+          setDisplayName(row?.display_name ?? null)
+          setError(null)
+        }
+
+        applyRow(roleRow)
+
         if (roleRow?.role) {
-          setRole(roleRow.role as AppRole)
-          setDisplayName(roleRow.display_name ?? null)
           return
         }
 
@@ -65,6 +83,15 @@ export function useAppRole() {
           })
           if (!insertErr) {
             setRole(DEFAULT_BOOTSTRAP_ROLE)
+          } else if (
+            (insertErr as { code?: string }).code === '23505' ||
+            insertErr.message.toLowerCase().includes('duplicate')
+          ) {
+            const retry = await readRole()
+            if (!mounted) return
+            if (retry.error) setError(retry.error.message)
+            applyRow(retry.data ?? null)
+            if (!retry.data?.role?.trim()) setError(insertErr.message)
           } else if (mounted) {
             setError(insertErr.message)
             setRole(null)

@@ -46,7 +46,7 @@ const navItems = [
 export default function Navbar() {
   const pathname = usePathname()
   const router = useRouter()
-  const { role, email, displayName } = useAppRole()
+  const { role, email, displayName, loading: roleLoading, error: roleError } = useAppRole()
   const supabase = useMemo(() => createClient(), [])
 
   const linkClass = (active: boolean) =>
@@ -72,7 +72,9 @@ export default function Navbar() {
     router.push('/auth/login')
   }
 
-  const AvatarMenu = role ? (
+  const showAccountMenu = Boolean(email) && !roleLoading
+
+  const AvatarMenu = showAccountMenu ? (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
@@ -88,7 +90,9 @@ export default function Navbar() {
         <DropdownMenuLabel className="py-2">
           <div className="flex flex-col gap-0.5">
             <span className="text-sm font-semibold leading-tight">{email ?? '—'}</span>
-            <span className="text-xs font-medium text-muted-foreground leading-tight">{role}</span>
+            <span className="text-xs font-medium text-muted-foreground leading-tight">
+              {role ?? (roleError ? 'No se pudo leer el rol' : '—')}
+            </span>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
