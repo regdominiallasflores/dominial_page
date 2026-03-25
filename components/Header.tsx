@@ -30,7 +30,6 @@ export default function Header() {
             ))}
           </div>
         </Link>
-        {/* En pantallas &lt; lg el buscador queda debajo del encabezado; en lg+ a la derecha */}
         <div className="w-full min-w-0 lg:max-w-xl lg:flex-1">
           <HeaderSearch />
         </div>

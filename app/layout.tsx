@@ -26,10 +26,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <body className="font-sans antialiased bg-background">
+      <body className="flex min-h-dvh flex-col font-sans antialiased bg-background">
         <Header />
         <Navbar />
-        <main className="min-w-0">
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col">
           {children}
         </main>
         <Analytics />

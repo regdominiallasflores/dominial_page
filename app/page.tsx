@@ -76,9 +76,7 @@ export default function Dashboard() {
   ]
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="page-container py-6">
-        {/* Stats Cards */}
+    <div className="page-container py-6">
         <div className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-5">
           {modules.map((module) => {
             const Icon = module.icon
@@ -144,7 +142,6 @@ export default function Dashboard() {
         </div>
 
         <RecepcionSection onMutationSuccess={fetchStats} />
-      </div>
     </div>
   )
 }

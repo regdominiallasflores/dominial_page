@@ -19,7 +19,6 @@ export type ReminderTarget = {
   label: string
   titulo: string
   tablaOrigen: string
-  /** Si existe, el diálogo abre en modo edición de ese recordatorio. */
   existing?: PendingReminderInfo | null
 }
 

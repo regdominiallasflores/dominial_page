@@ -20,12 +20,11 @@ export default function PersonaJuridicaPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="page-container py-6">
+    <div className="page-container py-6">
         <ModuleListToolbar
           title="Persona Jurídica"
           subtitle="Trámites de personas jurídicas"
-          searchPlaceholder="Buscar por legajo, expediente, denominación, trámite, estado..."
+          searchPlaceholder="Buscar por legajo, expediente, denominación, trámite, ubicación, estado..."
           onSearchSubmit={setSearchTerm}
           onToggleForm={() => setShowForm(!showForm)}
           endActions={
@@ -50,7 +49,6 @@ export default function PersonaJuridicaPage() {
         )}
 
         <PersonaJuridicaTable key={refreshKey} searchTerm={searchTerm} />
-      </div>
     </div>
   )
 }

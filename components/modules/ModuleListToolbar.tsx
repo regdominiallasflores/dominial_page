@@ -6,27 +6,21 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Plus, Search, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useAppRole } from '@/components/auth/useAppRole'
 
 type Props = {
   title: string
   subtitle: string
   searchPlaceholder: string
-  /** Se llama al enviar (Enter o «Buscar») con el texto ya recortado; luego el campo se vacía. */
   onSearchSubmit: (query: string) => void
   onToggleForm: () => void
-  /** Texto del botón azul de alta (por defecto «Nuevo Trámite»). */
   newEntryLabel?: string
-  /** Botones o enlaces a la derecha del botón de alta (misma fila en escritorio). */
   endActions?: ReactNode
 }
 
 const btnCompact =
   'h-9 min-h-9 px-3 text-sm font-semibold shadow-sm lg:px-4'
 
-/**
- * Barra de módulo: en lg+ una fila con items-center (sin display:contents).
- * Card sin py del tema shadcn: solo padding en CardContent.
- */
 export default function ModuleListToolbar({
   title,
   subtitle,
@@ -37,6 +31,10 @@ export default function ModuleListToolbar({
   endActions,
 }: Props) {
   const [draft, setDraft] = useState('')
+  const { role, loading } = useAppRole()
+
+  const canWrite = role === 'admin' || role === 'superAdmin'
+  const showCreateButton = canWrite || loading
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
@@ -55,7 +53,6 @@ export default function ModuleListToolbar({
             <p className="text-xs text-muted-foreground sm:text-sm">{subtitle}</p>
           </div>
 
-          {/* <lg: columna + max-w-2xl; lg+: una fila flex real, buscador y botones alineados */}
           <div className="mx-auto flex w-full max-w-2xl min-w-0 flex-1 flex-col gap-3 lg:mx-0 lg:max-w-none lg:flex-row lg:flex-nowrap lg:items-center lg:gap-4">
             <form
               onSubmit={handleSubmit}
@@ -105,23 +102,25 @@ export default function ModuleListToolbar({
             <div
               className={cn(
                 'w-full min-w-0 shrink-0 gap-2 lg:w-auto lg:items-center lg:justify-end',
-                endActions
+                endActions && showCreateButton
                   ? 'grid grid-cols-2 lg:flex lg:flex-row'
                   : 'flex flex-col lg:flex-row',
               )}
             >
-              <Button
-                type="button"
-                onClick={onToggleForm}
-                className={cn(
-                  'min-w-0 bg-blue-600 text-white hover:bg-blue-700',
-                  btnCompact,
-                  'w-full lg:w-auto lg:shrink-0',
-                )}
-              >
-                <Plus className="mr-1 h-4 w-4 shrink-0 sm:mr-2" />
-                <span className="truncate">{newEntryLabel}</span>
-              </Button>
+              {showCreateButton ? (
+                <Button
+                  type="button"
+                  onClick={onToggleForm}
+                  className={cn(
+                    'min-w-0 bg-blue-600 text-white hover:bg-blue-700',
+                    btnCompact,
+                    'w-full lg:w-auto lg:shrink-0',
+                  )}
+                >
+                  <Plus className="mr-1 h-4 w-4 shrink-0 sm:mr-2" />
+                  <span className="truncate">{newEntryLabel}</span>
+                </Button>
+              ) : null}
               {endActions ? (
                 <div
                   className={cn(

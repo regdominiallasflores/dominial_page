@@ -1,7 +1,6 @@
 import type { DetailRow } from '@/components/RecordDetailDrawer'
 import { detailLink, formatDetailValue } from '@/components/RecordDetailDrawer'
 
-/** Filas de detalle para búsqueda y vistas que no deben mostrar el UUID. */
 export function getSearchDetailRows(
   table: string,
   record: Record<string, unknown>,
@@ -43,6 +42,8 @@ function personaJuridicaRows(r: Record<string, unknown>): DetailRow[] {
     { label: 'Expediente', value: formatDetailValue(r.expediente) },
     { label: 'Denominación', value: formatDetailValue(r.denominacion) },
     { label: 'Trámite', value: formatDetailValue(r.tramite) },
+    { label: 'Documentación', value: detailLink(r.link_documentacion as string | undefined) },
+    { label: 'Ubicación', value: formatDetailValue(r.ubicacion) },
     { label: 'Estado', value: formatDetailValue(r.resolucion) },
     { label: 'Fecha de resolución', value: formatDetailValue(r.fecha_resolucion) },
     { label: 'Observaciones', value: formatDetailValue(r.observaciones) },
@@ -58,6 +59,7 @@ function afectacionRows(r: Record<string, unknown>): DetailRow[] {
     { label: 'Expediente', value: formatDetailValue(r.expediente) },
     { label: 'Afectante', value: formatDetailValue(r.afectante) },
     { label: 'Documentación', value: detailLink(r.link_documentacion as string | undefined) },
+    { label: 'Ubicación', value: formatDetailValue(r.ubicacion) },
     { label: 'Estado', value: formatDetailValue(r.estado) },
     { label: 'Fecha de resolución', value: formatDetailValue(r.fecha_resolucion) },
     { label: 'Enlace de descarga', value: detailLink(r.link_descarga as string | undefined) },

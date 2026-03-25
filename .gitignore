@@ -13,4 +13,6 @@ next.user-config.*
 # Common ignores
 node_modules
 .next/
+.tsbuildinfo
+tsconfig.tsbuildinfo
 .DS_Store

@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { RecordDetailDrawer } from '@/components/RecordDetailDrawer'
 import { getSearchDetailRows } from '@/lib/record-detail-rows'
 import { createClient } from '@/lib/supabase/client'
+import { formatDateDdMmYyyy } from '@/lib/format-date'
 import { FileText, Users, AlertCircle, ScrollText, Loader2 } from 'lucide-react'
 
 interface SearchResult {
@@ -59,7 +60,7 @@ function SearchContent() {
       const { data: pj } = await supabase
         .from('persona_juridica')
         .select('*')
-        .or(`denominacion.ilike.${searchTerm},expediente.ilike.${searchTerm},tramite.ilike.${searchTerm}`)
+        .or(`denominacion.ilike.${searchTerm},expediente.ilike.${searchTerm},tramite.ilike.${searchTerm},ubicacion.ilike.${searchTerm}`)
         .limit(10)
 
       pj?.forEach((r) => {
@@ -76,7 +77,7 @@ function SearchContent() {
       const { data: afectacion } = await supabase
         .from('afectacion')
         .select('*')
-        .or(`afectante.ilike.${searchTerm},expediente.ilike.${searchTerm}`)
+        .or(`afectante.ilike.${searchTerm},expediente.ilike.${searchTerm},ubicacion.ilike.${searchTerm}`)
         .limit(10)
 
       afectacion?.forEach((r) => {
@@ -135,7 +136,7 @@ function SearchContent() {
   const drawerTitle = selected ? `Detalle — ${getTableInfo(selected.table).label}` : ''
 
   return (
-    <div className="min-h-screen bg-background">
+    <>
       <div className="page-container py-6">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-foreground">Resultados de búsqueda</h1>
@@ -189,7 +190,7 @@ function SearchContent() {
                       )}
                       {result.fecha && (
                         <p className="mt-1 text-xs text-muted-foreground">
-                          {new Date(result.fecha).toLocaleDateString('es-AR')}
+                          {formatDateDdMmYyyy(result.fecha)}
                         </p>
                       )}
                     </div>
@@ -214,7 +215,7 @@ function SearchContent() {
         description={selected?.title}
         rows={selected ? getSearchDetailRows(selected.table, selected.record) : []}
       />
-    </div>
+    </>
   )
 }
 
@@ -222,7 +223,7 @@ export default function BusquedaPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="flex flex-1 items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       }

@@ -19,8 +19,7 @@ export default function LeyPierriPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="page-container py-6">
+    <div className="page-container py-6">
         <ModuleListToolbar
           title="Ley Pierri"
           subtitle="Trámites según Ley Pierri"
@@ -49,7 +48,6 @@ export default function LeyPierriPage() {
         )}
 
         <LeyPierriTable key={refreshKey} searchTerm={searchTerm} />
-      </div>
     </div>
   )
 }

@@ -1,8 +1,16 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import {
   Sheet,
   SheetContent,
@@ -11,7 +19,20 @@ import {
   SheetTrigger,
   SheetClose,
 } from '@/components/ui/sheet'
-import { FileText, Users, AlertCircle, ScrollText, Bell, Home, Menu } from 'lucide-react'
+import {
+  FileText,
+  Users,
+  AlertCircle,
+  ScrollText,
+  Bell,
+  Home,
+  Menu,
+  UserPlus,
+  LogOut,
+} from 'lucide-react'
+import { useAppRole } from '@/components/auth/useAppRole'
+import { createClient } from '@/lib/supabase/client'
+import { useMemo } from 'react'
 
 const navItems = [
   { href: '/', label: 'Inicio', icon: Home },
@@ -24,6 +45,9 @@ const navItems = [
 
 export default function Navbar() {
   const pathname = usePathname()
+  const router = useRouter()
+  const { role, email, displayName } = useAppRole()
+  const supabase = useMemo(() => createClient(), [])
 
   const linkClass = (active: boolean) =>
     `flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors ${
@@ -32,10 +56,62 @@ export default function Navbar() {
         : 'text-muted-foreground hover:bg-muted hover:text-foreground'
     }`
 
+  const BOOTSTRAP_SUPERADMIN_EMAIL = 'regdominial@lasflores.gob.ar'
+  const isBootstrapEmail =
+    (email ?? '').toLowerCase() === BOOTSTRAP_SUPERADMIN_EMAIL.toLowerCase()
+
+  const showAdminUsers = role === 'admin' || role === 'superAdmin' || isBootstrapEmail
+  const adminUsersItem = { href: '/admin/users', label: 'Usuarios', icon: UserPlus }
+  const AdminUsersIcon = adminUsersItem.icon
+
+  const userInitial =
+    (displayName?.trim()?.[0] ?? email?.trim()?.[0] ?? '?').toUpperCase()
+
+  async function onLogout() {
+    await supabase.auth.signOut()
+    router.push('/auth/login')
+  }
+
+  const AvatarMenu = role ? (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className="ml-auto inline-flex size-9 items-center justify-center rounded-full border border-border bg-background hover:bg-muted"
+          aria-label="Cuenta"
+          title="Cuenta"
+        >
+          <span className="text-xs font-bold">{userInitial}</span>
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-44">
+        <DropdownMenuLabel className="py-2">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-sm font-semibold leading-tight">{email ?? '—'}</span>
+            <span className="text-xs font-medium text-muted-foreground leading-tight">{role}</span>
+          </div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {showAdminUsers ? (
+          <>
+            <DropdownMenuItem onSelect={() => router.push('/admin/users')}>
+              <AdminUsersIcon />
+              <span>Usuarios</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        ) : null}
+        <DropdownMenuItem variant="destructive" onSelect={onLogout}>
+          <LogOut />
+          <span>Cerrar sesión</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  ) : null
+
   return (
     <nav className="sticky top-0 z-40 border-b border-border bg-card shadow-sm">
       <div className="page-container">
-        {/* Móvil / tablet: menú hamburguesa */}
         <div className="flex h-14 items-center gap-2 lg:hidden">
           <Sheet>
             <SheetTrigger asChild>
@@ -67,13 +143,27 @@ export default function Navbar() {
                     </SheetClose>
                   )
                 })}
+                {showAdminUsers ? (
+                  <SheetClose asChild>
+                    <Link
+                      href={adminUsersItem.href}
+                      className={linkClass(
+                        pathname === adminUsersItem.href ||
+                          (pathname.startsWith('/admin') && adminUsersItem.href === '/admin/users'),
+                      )}
+                    >
+                      <AdminUsersIcon className="h-5 w-5 shrink-0" />
+                      {adminUsersItem.label}
+                    </Link>
+                  </SheetClose>
+                ) : null}
               </nav>
             </SheetContent>
           </Sheet>
           <span className="truncate text-sm font-medium text-muted-foreground">Menú principal</span>
+          {AvatarMenu}
         </div>
 
-        {/* Escritorio: barra horizontal con scroll suave por si faltara espacio */}
         <div className="hidden h-14 items-center gap-1 overflow-x-auto overflow-y-hidden py-1 lg:flex">
           {navItems.map((item) => {
             const Icon = item.icon
@@ -97,6 +187,7 @@ export default function Navbar() {
               </Link>
             )
           })}
+          {AvatarMenu ? <div className="ml-auto">{AvatarMenu}</div> : null}
         </div>
       </div>
     </nav>

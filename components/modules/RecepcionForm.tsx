@@ -78,7 +78,6 @@ export default function RecepcionForm({ onSuccess, onCancel, editRecord }: Props
     try {
       const supabase = createClient()
       
-      // Convertir strings vacíos a null para campos DATE opcionales
       const payload = {
         ...formData,
         fecha_resolucion: formData.fecha_resolucion ? formData.fecha_resolucion : null,

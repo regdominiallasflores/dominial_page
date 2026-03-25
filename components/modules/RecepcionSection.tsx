@@ -7,7 +7,6 @@ import RecepcionForm from '@/components/modules/RecepcionForm'
 import ModuleListToolbar from '@/components/modules/ModuleListToolbar'
 
 type Props = {
-  /** Ej. en Inicio: volver a cargar estadísticas tras un alta */
   onMutationSuccess?: () => void
 }
 

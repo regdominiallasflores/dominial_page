@@ -22,6 +22,8 @@ export type PersonaJuridicaEditRecord = {
   notificado?: boolean | null
   representante?: string | null
   telefono?: string | null
+  link_documentacion?: string | null
+  ubicacion?: string | null
 }
 
 function createEmptyForm() {
@@ -37,6 +39,8 @@ function createEmptyForm() {
     notificado: false,
     representante: '',
     telefono: '',
+    link_documentacion: '',
+    ubicacion: '',
   }
 }
 
@@ -54,6 +58,8 @@ function recordToForm(r: PersonaJuridicaEditRecord) {
     notificado: Boolean(r.notificado),
     representante: String(r.representante ?? ''),
     telefono: String(r.telefono ?? ''),
+    link_documentacion: String(r.link_documentacion ?? ''),
+    ubicacion: String(r.ubicacion ?? ''),
   }
 }
 
@@ -94,6 +100,8 @@ export default function PersonaJuridicaForm({ onSuccess, onCancel, editRecord }:
         ...formData,
         resolucion: formData.resolucion.trim() || null,
         fecha_resolucion: formData.fecha_resolucion ? formData.fecha_resolucion : null,
+        link_documentacion: formData.link_documentacion.trim() || null,
+        ubicacion: formData.ubicacion.trim() || null,
       }
       if (isEdit && editRecord) {
         const { error } = await supabase.from('persona_juridica').update(payload).eq('id', editRecord.id)
@@ -220,6 +228,30 @@ export default function PersonaJuridicaForm({ onSuccess, onCancel, editRecord }:
             ))}
           </select>
         </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-1">Link documentación</label>
+        <input
+          type="text"
+          name="link_documentacion"
+          value={formData.link_documentacion}
+          onChange={handleChange}
+          placeholder="https://..."
+          className="w-full px-3 py-2 border border-input rounded-md bg-background"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-1">Ubicación</label>
+        <input
+          type="text"
+          name="ubicacion"
+          value={formData.ubicacion}
+          onChange={handleChange}
+          placeholder="Ej: barrio, partido, dirección del bien"
+          className="w-full px-3 py-2 border border-input rounded-md bg-background"
+        />
       </div>
 
       <div>

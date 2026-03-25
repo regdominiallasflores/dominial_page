@@ -25,6 +25,8 @@ import {
 } from '@/components/ui/dialog'
 import AfectacionForm from '@/components/modules/AfectacionForm'
 import ReminderDialog from '@/components/modules/ReminderDialog'
+import { useAppRole } from '@/components/auth/useAppRole'
+import { formatDateDdMmYyyy } from '@/lib/format-date'
 import {
   AFECTACION_ESTADOS,
   isAfectacionEstado,
@@ -85,6 +87,7 @@ interface Afectacion {
   notificado: boolean
   representante: string
   telefono: string
+  ubicacion: string | null
 }
 
 interface Props {
@@ -124,6 +127,9 @@ export default function AfectacionTable({ searchTerm }: Props) {
     col: null,
     dir: 'desc',
   })
+
+  const { role, loading: roleLoading } = useAppRole()
+  const canWrite = role === 'admin' || role === 'superAdmin' || roleLoading
 
   const displayData = useMemo(
     () => [...data].sort((a, b) => compareAfectacionRows(a, b, sort.col, sort.dir)),
@@ -178,7 +184,7 @@ export default function AfectacionTable({ searchTerm }: Props) {
 
       if (searchTerm) {
         query = query.or(
-          `expediente.ilike.%${searchTerm}%,afectante.ilike.%${searchTerm}%,estado.ilike.%${searchTerm}%`
+          `expediente.ilike.%${searchTerm}%,afectante.ilike.%${searchTerm}%,estado.ilike.%${searchTerm}%,ubicacion.ilike.%${searchTerm}%`
         )
       }
 
@@ -374,7 +380,9 @@ export default function AfectacionTable({ searchTerm }: Props) {
                 )}
                 onClick={() => setSelected(item)}
               >
-                <td className="px-4 py-3 tabular-nums text-muted-foreground">{item.fecha_ingreso}</td>
+                <td className="px-4 py-3 tabular-nums text-muted-foreground">
+                  {formatDateDdMmYyyy(item.fecha_ingreso)}
+                </td>
                 <td className="px-4 py-3 font-medium">{item.expediente}</td>
                 <td className="px-4 py-3">{item.afectante}</td>
                 <td
@@ -386,7 +394,11 @@ export default function AfectacionTable({ searchTerm }: Props) {
                     aria-label="Cambiar estado"
                     value={item.estado ?? ''}
                     title="Cambiar estado"
-                    onChange={(e) => void handleEstadoChange(item.id, e.target.value)}
+                    disabled={!canWrite}
+                    onChange={(e) => {
+                      if (!canWrite) return
+                      void handleEstadoChange(item.id, e.target.value)
+                    }}
                     className={cn(
                       'max-w-[11rem] cursor-pointer rounded-full border-0 py-1 pl-2 pr-7 text-xs font-medium shadow-sm ring-1 ring-black/5 focus:outline-none focus:ring-2 focus:ring-emerald-500/60',
                       estadoSelectDisplayClasses(item.estado ?? ''),
@@ -412,9 +424,11 @@ export default function AfectacionTable({ searchTerm }: Props) {
                     aria-label="Cambiar notificado"
                     value={item.notificado ? 'true' : 'false'}
                     title="Marcar si fue notificado"
-                    onChange={(e) =>
+                    disabled={!canWrite}
+                    onChange={(e) => {
+                      if (!canWrite) return
                       void handleNotificadoChange(item.id, e.target.value === 'true')
-                    }
+                    }}
                     className={cn(
                       'cursor-pointer rounded-full border-0 py-1 pl-2 pr-6 text-xs font-medium shadow-sm ring-1 ring-black/5 focus:outline-none focus:ring-2 focus:ring-emerald-500/60',
                       notificadoSelectClasses(item.notificado),
@@ -426,14 +440,16 @@ export default function AfectacionTable({ searchTerm }: Props) {
                 </td>
                 <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                   <div className="flex gap-2 justify-center">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setEditing(item)}
-                      title="Editar"
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
+                    {canWrite ? (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setEditing(item)}
+                        title="Editar"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                    ) : null}
                     {item.link_descarga && (
                       <a href={item.link_descarga} target="_blank" rel="noopener noreferrer">
                         <Button size="sm" variant="ghost" title="Descargar">
@@ -441,28 +457,32 @@ export default function AfectacionTable({ searchTerm }: Props) {
                         </Button>
                       </a>
                     )}
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleAddReminder(item.id, item.expediente)}
-                    title={
-                      pendingReminders.has(item.id)
-                        ? 'Editar recordatorio'
-                        : 'Agregar recordatorio'
-                    }
-                    className={cn(getReminderBellButtonClass(pendingReminders, item.id))}
-                  >
-                    <Bell className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleDelete(item.id)}
-                    className="text-red-600 hover:text-red-700"
-                    title="Eliminar"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  {canWrite ? (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleAddReminder(item.id, item.expediente)}
+                        title={
+                          pendingReminders.has(item.id)
+                            ? 'Editar recordatorio'
+                            : 'Agregar recordatorio'
+                        }
+                        className={cn(getReminderBellButtonClass(pendingReminders, item.id))}
+                      >
+                        <Bell className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDelete(item.id)}
+                        className="text-red-600 hover:text-red-700"
+                        title="Eliminar"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </>
+                  ) : null}
                   </div>
                 </td>
               </tr>

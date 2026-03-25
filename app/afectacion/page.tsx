@@ -7,7 +7,6 @@ import AfectacionTable from '@/components/modules/AfectacionTable'
 import AfectacionForm from '@/components/modules/AfectacionForm'
 import ModuleListToolbar from '@/components/modules/ModuleListToolbar'
 
-/** Login Registro de la Propiedad BA (sin jsessionid; la sesión la crea el portal). */
 const REG_PROPIEDAD_HREF = `https://servicios.rpba.gob.ar/RegPropNew/signon/usernamePasswordLogin.jsp?josso_back_to=${encodeURIComponent(
   'https://servicios.rpba.gob.ar/RegPropNew/signon/index.jsp?RPBAExterno=1',
 )}`
@@ -23,12 +22,11 @@ export default function AfectacionPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="page-container py-6">
+    <div className="page-container py-6">
         <ModuleListToolbar
           title="Afectación"
           subtitle="Trámites de afectación"
-          searchPlaceholder="Buscar por expediente, afectante, estado..."
+          searchPlaceholder="Buscar por expediente, afectante, ubicación, estado..."
           onSearchSubmit={setSearchTerm}
           onToggleForm={() => setShowForm(!showForm)}
           endActions={
@@ -53,7 +51,6 @@ export default function AfectacionPage() {
         )}
 
         <AfectacionTable key={refreshKey} searchTerm={searchTerm} />
-      </div>
     </div>
   )
 }

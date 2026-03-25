@@ -1,5 +1,36 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import type { User } from '@supabase/supabase-js'
+
+const AUTH_GET_USER_TIMEOUT_MS = Math.max(
+  800,
+  Number(process.env.SUPABASE_PROXY_AUTH_TIMEOUT_MS) || 2500,
+)
+
+function isLikelyTransientAuthFailure(msg: string) {
+  const m = msg.toLowerCase()
+  return (
+    m.includes('fetch') ||
+    m.includes('network') ||
+    m.includes('timeout') ||
+    m.includes('econnreset') ||
+    m.includes('econnrefused') ||
+    m.includes('tls') ||
+    m.includes('socket') ||
+    m.includes('failed to fetch') ||
+    m.includes('auth getuser timeout')
+  )
+}
+
+function errorChainMessage(e: unknown): string {
+  if (!(e instanceof Error)) return String(e)
+  const cause = e.cause
+  if (cause instanceof Error) return `${e.message} · ${cause.message}`
+  if (cause != null && typeof cause === 'object' && 'code' in cause) {
+    return `${e.message} · ${String((cause as { code?: unknown }).code ?? '')}`
+  }
+  return e.message
+}
 
 export async function updateSession(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -12,8 +43,6 @@ export async function updateSession(request: NextRequest) {
     request,
   })
 
-  // With Fluid compute, don't put this client in a global environment
-  // variable. Always create a new one on each request.
   const supabase = createServerClient(
     supabaseUrl,
     supabaseAnonKey,
@@ -37,39 +66,61 @@ export async function updateSession(request: NextRequest) {
     },
   )
 
-  // Do not run code between createServerClient and
-  // supabase.auth.getUser(). A simple mistake could make it very hard to debug
-  // issues with users being randomly logged out.
+  let user: User | null = null
+  try {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(
+        () => reject(new Error(`auth getUser timeout (${AUTH_GET_USER_TIMEOUT_MS}ms)`)),
+        AUTH_GET_USER_TIMEOUT_MS,
+      )
+    })
 
-  // IMPORTANT: If you remove getUser() and you use server-side rendering
-  // with the Supabase client, your users may be randomly logged out.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    const {
+      data: { user: u },
+      error,
+    } = await Promise.race([
+      supabase.auth.getUser().finally(() => {
+        if (timeoutId !== undefined) clearTimeout(timeoutId)
+      }),
+      timeoutPromise,
+    ])
 
-  if (
-    // if the user is not logged in and the app path, in this case, /protected, is accessed, redirect to the login page
-    request.nextUrl.pathname.startsWith('/protected') &&
-    !user
-  ) {
-    // no user, potentially respond by redirecting the user to the login page
-    const url = request.nextUrl.clone()
-    url.pathname = '/auth/login'
-    return NextResponse.redirect(url)
+    if (error) {
+      if (isLikelyTransientAuthFailure(error.message)) {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[proxy] Supabase auth (transient), pass-through:', error.message)
+        }
+        return NextResponse.next({ request })
+      }
+      user = null
+    } else {
+      user = u ?? null
+    }
+  } catch (e) {
+    const msg = errorChainMessage(e)
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[proxy] Supabase auth.getUser — pass-through:', msg)
+    }
+    return NextResponse.next({ request })
   }
 
-  // IMPORTANT: You *must* return the supabaseResponse object as it is.
-  // If you're creating a new response object with NextResponse.next() make sure to:
-  // 1. Pass the request in it, like so:
-  //    const myNewResponse = NextResponse.next({ request })
-  // 2. Copy over the cookies, like so:
-  //    myNewResponse.cookies.setAll(supabaseResponse.cookies.getAll())
-  // 3. Change the myNewResponse object to fit your needs, but avoid changing
-  //    the cookies!
-  // 4. Finally:
-  //    return myNewResponse
-  // If this is not done, you may be causing the browser and server to go out
-  // of sync and terminate the user's session prematurely!
+  const pathname = request.nextUrl.pathname
+  const isPublicPath =
+    pathname.startsWith('/auth/login') || pathname.startsWith('/auth/')
+  const isApiPath = pathname.startsWith('/api/')
+
+  if (!user && !isPublicPath && !isApiPath) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/auth/login'
+
+    const redirectResponse = NextResponse.redirect(url)
+    supabaseResponse.cookies.getAll().forEach(({ name, value, ...options }) => {
+      redirectResponse.cookies.set(name, value, options)
+    })
+
+    return redirectResponse
+  }
 
   return supabaseResponse
 }

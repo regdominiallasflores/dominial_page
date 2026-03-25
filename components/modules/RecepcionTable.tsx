@@ -26,6 +26,8 @@ import {
 } from '@/components/ui/dialog'
 import RecepcionForm from '@/components/modules/RecepcionForm'
 import ReminderDialog from '@/components/modules/ReminderDialog'
+import { useAppRole } from '@/components/auth/useAppRole'
+import { formatDateDdMmYyyy } from '@/lib/format-date'
 
 interface Recepcion {
   id: string
@@ -76,6 +78,9 @@ export default function RecepcionTable({ searchTerm }: Props) {
     titulo: string
     existing: PendingReminderInfo | null
   } | null>(null)
+
+  const { role, loading: roleLoading } = useAppRole()
+  const canWrite = role === 'admin' || role === 'superAdmin' || roleLoading
 
   useEffect(() => {
     fetchData()
@@ -312,7 +317,9 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...`}
                 className="border-b border-border hover:bg-muted/50 cursor-pointer"
                 onClick={() => setSelected(item)}
               >
-                <td className="px-4 py-3">{item.fecha_ingreso}</td>
+                <td className="px-4 py-3 tabular-nums text-muted-foreground">
+                  {formatDateDdMmYyyy(item.fecha_ingreso)}
+                </td>
                 <td className="px-4 py-3 font-medium">{item.apellido_nombre}</td>
                 <td className="px-4 py-3">{item.tema}</td>
                 <td className="px-4 py-3">
@@ -327,36 +334,40 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...`}
                 <td className="px-4 py-3">{item.telefono}</td>
                 <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                   <div className="flex gap-2 justify-center">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setEditing(item)}
-                    title="Editar"
-                  >
-                    <Edit2 className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleAddReminder(item.id, item.apellido_nombre)}
-                    title={
-                      pendingReminders.has(item.id)
-                        ? 'Editar recordatorio'
-                        : 'Agregar recordatorio'
-                    }
-                    className={cn(getReminderBellButtonClass(pendingReminders, item.id))}
-                  >
-                    <Bell className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleDelete(item.id)}
-                    className="text-red-600 hover:text-red-700"
-                    title="Eliminar"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  {canWrite ? (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setEditing(item)}
+                        title="Editar"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleAddReminder(item.id, item.apellido_nombre)}
+                        title={
+                          pendingReminders.has(item.id)
+                            ? 'Editar recordatorio'
+                            : 'Agregar recordatorio'
+                        }
+                        className={cn(getReminderBellButtonClass(pendingReminders, item.id))}
+                      >
+                        <Bell className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDelete(item.id)}
+                        className="text-red-600 hover:text-red-700"
+                        title="Eliminar"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </>
+                  ) : null}
                   </div>
                 </td>
               </tr>

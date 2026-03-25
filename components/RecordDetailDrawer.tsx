@@ -12,12 +12,16 @@ import {
 } from '@/components/ui/drawer'
 import { Button } from '@/components/ui/button'
 import { X } from 'lucide-react'
+import { formatDateDdMmYyyy } from '@/lib/format-date'
 
 export type DetailRow = { label: string; value: React.ReactNode }
 
 export function formatDetailValue(value: unknown): string {
   if (value === null || value === undefined || value === '') return '—'
   if (typeof value === 'boolean') return value ? 'Sí' : 'No'
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value.trim())) {
+    return formatDateDdMmYyyy(value)
+  }
   return String(value)
 }
 

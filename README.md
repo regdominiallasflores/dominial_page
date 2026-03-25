@@ -48,9 +48,15 @@ Sin `.env.local`, la interfaz puede abrirse igual (hay valores de reserva para e
 
 Crea las tablas en el SQL Editor de Supabase ejecutando el script del repo:
 
-- `scripts/001_create_tables.sql`
+- `scripts/001_create_tables.sql` (incluye `app_user_roles` y políticas RLS mínimas para roles).
 
-La ruta `GET /api/init` del proyecto asume una función RPC `execute_sql` en Supabase; si no la tienes, usa solo el script SQL anterior.
+Si ya creaste las tablas con una versión vieja del script **sin** `app_user_roles` y ves el error **PGRST205** (“table … app_user_roles … not found”), ejecutá solo:
+
+- `scripts/002_app_user_roles.sql`
+
+Si la tabla existe pero tiene **0 filas** y tu usuario no “encuentra” rol: en **Authentication → Users** copiá el UUID del usuario y ejecutá `scripts/003_seed_superadmin.sql`, o insertá la fila a mano en **Table Editor** (`user_id` = UUID de Auth, `role` = `superAdmin`).
+
+La ruta `GET /api/init` del proyecto asume una función RPC `execute_sql` en Supabase; si no la tienes, usa los scripts SQL anteriores.
 
 ### 4. Servidor de desarrollo
 

@@ -7,6 +7,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ChevronLeft, Trash2, CheckCircle2, Circle } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useAppRole } from '@/components/auth/useAppRole'
+import { formatDateDdMmYyyy } from '@/lib/format-date'
 
 interface Recordatorio {
   id: string
@@ -21,6 +23,9 @@ export default function RecordatoriosPage() {
   const [recordatorios, setRecordatorios] = useState<Recordatorio[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'todos' | 'pendientes' | 'completados'>('pendientes')
+  const { role, loading: roleLoading } = useAppRole()
+
+  const canWrite = role === 'admin' || role === 'superAdmin' || roleLoading
 
   useEffect(() => {
     fetchRecordatorios()
@@ -83,7 +88,6 @@ export default function RecordatoriosPage() {
   const pendientes = recordatorios.filter(r => !r.completado)
   const completados = recordatorios.filter(r => r.completado)
 
-  /** Pendientes arriba; completados tachados al final (misma fecha ascendente dentro de cada grupo). */
   const recordatoriosOrdenados = useMemo(() => {
     const pend = recordatorios.filter((r) => !r.completado)
     const done = recordatorios.filter((r) => r.completado)
@@ -103,9 +107,7 @@ export default function RecordatoriosPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="page-container py-8">
-        {/* Header */}
+    <div className="page-container py-8">
         <div className="mb-8">
           <Link href="/" className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-4">
             <ChevronLeft className="h-4 w-4" />
@@ -117,7 +119,6 @@ export default function RecordatoriosPage() {
           </p>
         </div>
 
-        {/* Filtros */}
         <div className="mb-8 flex flex-wrap gap-2">
           {(['todos', 'pendientes', 'completados'] as const).map(f => (
             <Button
@@ -132,7 +133,6 @@ export default function RecordatoriosPage() {
           ))}
         </div>
 
-        {/* Contenido */}
         {loading ? (
           <Card>
             <CardContent className="pt-6 text-center text-muted-foreground">
@@ -163,8 +163,12 @@ export default function RecordatoriosPage() {
                       <div className="flex min-w-0 flex-1 items-center gap-3">
                         <button
                           type="button"
-                          onClick={() => handleToggleComplete(recordatorio.id, recordatorio.completado)}
-                          className="shrink-0"
+                          disabled={!canWrite}
+                          onClick={() => {
+                            if (!canWrite) return
+                            handleToggleComplete(recordatorio.id, recordatorio.completado)
+                          }}
+                          className="shrink-0 disabled:cursor-not-allowed disabled:opacity-60"
                           aria-label={
                             recordatorio.completado
                               ? 'Marcar como pendiente'
@@ -187,16 +191,18 @@ export default function RecordatoriosPage() {
                           {recordatorio.titulo}
                         </h3>
                       </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDelete(recordatorio.id)}
-                        className="w-full shrink-0 gap-2 border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 sm:w-auto dark:border-red-900/50 dark:hover:bg-red-950/40"
-                      >
-                        <Trash2 className="size-4 shrink-0" />
-                        Quitar recordatorio
-                      </Button>
+                      {canWrite ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDelete(recordatorio.id)}
+                          className="w-full shrink-0 gap-2 border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 sm:w-auto dark:border-red-900/50 dark:hover:bg-red-950/40"
+                        >
+                          <Trash2 className="size-4 shrink-0" />
+                          Quitar recordatorio
+                        </Button>
+                      ) : null}
                     </div>
                     {recordatorio.descripcion && (
                       <p
@@ -217,7 +223,8 @@ export default function RecordatoriosPage() {
                             'line-through decoration-muted-foreground/70',
                         )}
                       >
-                        Fecha: <strong>{recordatorio.fecha_recordatorio}</strong>
+                        Fecha:{' '}
+                        <strong>{formatDateDdMmYyyy(recordatorio.fecha_recordatorio)}</strong>
                       </span>
                       <span
                         className={cn(
@@ -259,7 +266,6 @@ export default function RecordatoriosPage() {
             ))}
           </div>
         )}
-      </div>
     </div>
   )
 }

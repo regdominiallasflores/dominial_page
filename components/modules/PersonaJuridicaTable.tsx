@@ -10,9 +10,10 @@ import {
 import { cn } from '@/lib/utils'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ArrowDown, ArrowUp, ArrowUpDown, Bell, Edit2, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpDown, Bell, Download, Edit2, Trash2 } from 'lucide-react'
 import {
   RecordDetailDrawer,
+  detailLink,
   formatDetailValue,
   type DetailRow,
 } from '@/components/RecordDetailDrawer'
@@ -29,6 +30,7 @@ import {
   isPersonaJuridicaEstado,
   type PersonaJuridicaEstado,
 } from '@/lib/persona-juridica-estados'
+import { useAppRole } from '@/components/auth/useAppRole'
 
 type SortColumn = 'denominacion' | 'estado' | 'notificado'
 
@@ -84,6 +86,8 @@ interface PersonaJuridica {
   notificado: boolean
   representante: string
   telefono: string
+  link_documentacion: string | null
+  ubicacion: string | null
 }
 
 interface Props {
@@ -97,6 +101,8 @@ function personaJuridicaDetailRows(r: PersonaJuridica): DetailRow[] {
     { label: 'Expediente', value: formatDetailValue(r.expediente) },
     { label: 'Denominación', value: formatDetailValue(r.denominacion) },
     { label: 'Trámite', value: formatDetailValue(r.tramite) },
+    { label: 'Documentación', value: detailLink(r.link_documentacion) },
+    { label: 'Ubicación', value: formatDetailValue(r.ubicacion) },
     { label: 'Estado', value: formatDetailValue(r.resolucion) },
     { label: 'Fecha de resolución', value: formatDetailValue(r.fecha_resolucion) },
     { label: 'Observaciones', value: formatDetailValue(r.observaciones) },
@@ -123,6 +129,9 @@ export default function PersonaJuridicaTable({ searchTerm }: Props) {
     col: null,
     dir: 'desc',
   })
+
+  const { role, loading: roleLoading } = useAppRole()
+  const canWrite = role === 'admin' || role === 'superAdmin' || roleLoading
 
   const displayData = useMemo(
     () => [...data].sort((a, b) => comparePersonaJuridicaRows(a, b, sort.col, sort.dir)),
@@ -177,7 +186,7 @@ export default function PersonaJuridicaTable({ searchTerm }: Props) {
 
       if (searchTerm) {
         query = query.or(
-          `legajo.ilike.%${searchTerm}%,expediente.ilike.%${searchTerm}%,denominacion.ilike.%${searchTerm}%,representante.ilike.%${searchTerm}%,tramite.ilike.%${searchTerm}%,resolucion.ilike.%${searchTerm}%`,
+          `legajo.ilike.%${searchTerm}%,expediente.ilike.%${searchTerm}%,denominacion.ilike.%${searchTerm}%,representante.ilike.%${searchTerm}%,tramite.ilike.%${searchTerm}%,resolucion.ilike.%${searchTerm}%,ubicacion.ilike.%${searchTerm}%`,
         )
       }
 
@@ -367,8 +376,7 @@ export default function PersonaJuridicaTable({ searchTerm }: Props) {
                 className={cn(
                   'cursor-pointer border-b border-border transition-colors',
                   isRowResuelto(item)
-                    ? // Fondo fijo en fila y celdas (algunos navegadores no pintan solo el <tr>)
-                      'bg-emerald-100 [&>td]:bg-emerald-100 hover:bg-emerald-200 hover:[&>td]:bg-emerald-200 dark:bg-emerald-950/55 dark:[&>td]:bg-emerald-950/55 dark:hover:bg-emerald-900/65 dark:hover:[&>td]:bg-emerald-900/65'
+                    ? 'bg-emerald-100 [&>td]:bg-emerald-100 hover:bg-emerald-200 hover:[&>td]:bg-emerald-200 dark:bg-emerald-950/55 dark:[&>td]:bg-emerald-950/55 dark:hover:bg-emerald-900/65 dark:hover:[&>td]:bg-emerald-900/65'
                     : 'hover:bg-muted/50',
                 )}
                 onClick={() => setSelected(item)}
@@ -387,7 +395,11 @@ export default function PersonaJuridicaTable({ searchTerm }: Props) {
                     aria-label="Cambiar estado"
                     value={item.resolucion ?? ''}
                     title="Cambiar estado"
-                    onChange={(e) => void handleResolucionChange(item.id, e.target.value)}
+                    disabled={!canWrite}
+                    onChange={(e) => {
+                      if (!canWrite) return
+                      void handleResolucionChange(item.id, e.target.value)
+                    }}
                     className={cn(
                       'max-w-[12.5rem] cursor-pointer rounded-full border-0 py-1 pl-2 pr-7 text-xs font-medium shadow-sm ring-1 ring-black/5 focus:outline-none focus:ring-2 focus:ring-emerald-500/60',
                       estadoDisplayClasses(item.resolucion ?? ''),
@@ -414,8 +426,12 @@ export default function PersonaJuridicaTable({ searchTerm }: Props) {
                     aria-label="Cambiar notificado"
                     value={item.notificado ? 'true' : 'false'}
                     title="Marcar si fue notificado"
+                    disabled={!canWrite}
                     onChange={(e) =>
-                      void handleNotificadoChange(item.id, e.target.value === 'true')
+                      {
+                        if (!canWrite) return
+                        void handleNotificadoChange(item.id, e.target.value === 'true')
+                      }
                     }
                     className={cn(
                       'cursor-pointer rounded-full border-0 py-1 pl-2 pr-6 text-xs font-medium shadow-sm ring-1 ring-black/5 focus:outline-none focus:ring-2 focus:ring-emerald-500/60',
@@ -428,36 +444,49 @@ export default function PersonaJuridicaTable({ searchTerm }: Props) {
                 </td>
                 <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                   <div className="flex gap-2 justify-center">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setEditing(item)}
-                    title="Editar"
-                  >
-                    <Edit2 className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleAddReminder(item.id, item.denominacion)}
-                    title={
-                      pendingReminders.has(item.id)
-                        ? 'Editar recordatorio'
-                        : 'Agregar recordatorio'
-                    }
-                    className={cn(getReminderBellButtonClass(pendingReminders, item.id))}
-                  >
-                    <Bell className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleDelete(item.id)}
-                    className="text-red-600 hover:text-red-700"
-                    title="Eliminar"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                    {canWrite ? (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setEditing(item)}
+                        title="Editar"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                    ) : null}
+                    {item.link_documentacion ? (
+                      <a href={item.link_documentacion} target="_blank" rel="noopener noreferrer">
+                        <Button size="sm" variant="ghost" title="Documentación">
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      </a>
+                    ) : null}
+                    {canWrite ? (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleAddReminder(item.id, item.denominacion)}
+                          title={
+                            pendingReminders.has(item.id)
+                              ? 'Editar recordatorio'
+                              : 'Agregar recordatorio'
+                          }
+                          className={cn(getReminderBellButtonClass(pendingReminders, item.id))}
+                        >
+                          <Bell className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDelete(item.id)}
+                          className="text-red-600 hover:text-red-700"
+                          title="Eliminar"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </>
+                    ) : null}
                   </div>
                 </td>
               </tr>

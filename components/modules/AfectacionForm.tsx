@@ -22,6 +22,7 @@ export type AfectacionEditRecord = {
   notificado?: boolean | null
   representante?: string | null
   telefono?: string | null
+  ubicacion?: string | null
 }
 
 function createEmptyForm() {
@@ -37,6 +38,7 @@ function createEmptyForm() {
     notificado: false,
     representante: '',
     telefono: '',
+    ubicacion: '',
   }
 }
 
@@ -54,6 +56,7 @@ function recordToForm(r: AfectacionEditRecord) {
     notificado: Boolean(r.notificado),
     representante: String(r.representante ?? ''),
     telefono: String(r.telefono ?? ''),
+    ubicacion: String(r.ubicacion ?? ''),
   }
 }
 
@@ -94,6 +97,7 @@ export default function AfectacionForm({ onSuccess, onCancel, editRecord }: Prop
         ...formData,
         estado: formData.estado.trim() || null,
         fecha_resolucion: formData.fecha_resolucion ? formData.fecha_resolucion : null,
+        ubicacion: formData.ubicacion.trim() || null,
       }
       if (isEdit && editRecord) {
         const { error } = await supabase.from('afectacion').update(payload).eq('id', editRecord.id)
@@ -173,6 +177,18 @@ export default function AfectacionForm({ onSuccess, onCancel, editRecord }: Prop
           value={formData.link_documentacion}
           onChange={handleChange}
           placeholder="https://..."
+          className="w-full px-3 py-2 border border-input rounded-md bg-background"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-1">Ubicación</label>
+        <input
+          type="text"
+          name="ubicacion"
+          value={formData.ubicacion}
+          onChange={handleChange}
+          placeholder="Ej: barrio, partido, dirección del bien"
           className="w-full px-3 py-2 border border-input rounded-md bg-background"
         />
       </div>

@@ -32,6 +32,8 @@ import {
   isLeyPierriEscribaniaEstadoRow,
   type LeyPierriEstado,
 } from '@/lib/ley-pierri-constants'
+import { useAppRole } from '@/components/auth/useAppRole'
+import { formatDateDdMmYyyy } from '@/lib/format-date'
 
 interface LeyPierri {
   id: string
@@ -121,6 +123,9 @@ export default function LeyPierriTable({ searchTerm }: Props) {
     col: null,
     dir: 'desc',
   })
+
+  const { role, loading: roleLoading } = useAppRole()
+  const canWrite = role === 'admin' || role === 'superAdmin' || roleLoading
 
   const displayData = useMemo(
     () => [...data].sort((a, b) => compareLeyPierriRows(a, b, sort.col, sort.dir)),
@@ -367,7 +372,9 @@ export default function LeyPierriTable({ searchTerm }: Props) {
                 )}
                 onClick={() => setSelected(item)}
               >
-                <td className="px-4 py-3 tabular-nums text-muted-foreground">{item.fecha_ingreso}</td>
+                <td className="px-4 py-3 tabular-nums text-muted-foreground">
+                  {formatDateDdMmYyyy(item.fecha_ingreso)}
+                </td>
                 <td className="px-4 py-3 font-medium">{item.beneficiarios}</td>
                 <td
                   className="px-4 py-3"
@@ -378,7 +385,11 @@ export default function LeyPierriTable({ searchTerm }: Props) {
                     aria-label="Cambiar estado"
                     title="Cambiar estado"
                     value={item.estado}
-                    onChange={(e) => void handleEstadoChange(item.id, e.target.value)}
+                    disabled={!canWrite}
+                    onChange={(e) => {
+                      if (!canWrite) return
+                      void handleEstadoChange(item.id, e.target.value)
+                    }}
                     className={cn(
                       'max-w-[12.5rem] cursor-pointer rounded-full border-0 py-1 pl-2 pr-7 text-xs font-medium shadow-sm ring-1 ring-black/5 focus:outline-none focus:ring-2 focus:ring-emerald-500/60',
                       estadoSelectClasses(item.estado),
@@ -403,7 +414,11 @@ export default function LeyPierriTable({ searchTerm }: Props) {
                     aria-label="Cambiar escribanía"
                     title="Cambiar escribanía"
                     value={item.escribania ?? ''}
-                    onChange={(e) => void handleEscribaniaChange(item.id, e.target.value)}
+                    disabled={!canWrite}
+                    onChange={(e) => {
+                      if (!canWrite) return
+                      void handleEscribaniaChange(item.id, e.target.value)
+                    }}
                     className={cn(
                       'max-w-[13rem] cursor-pointer rounded-full border-0 py-1 pl-2 pr-7 text-xs font-medium shadow-sm ring-1 ring-black/5 focus:outline-none focus:ring-2 focus:ring-emerald-500/60',
                       escribaniaSelectClasses(item.escribania),
@@ -423,14 +438,16 @@ export default function LeyPierriTable({ searchTerm }: Props) {
                 </td>
                 <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                   <div className="flex gap-2 justify-center">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setEditing(item)}
-                      title="Editar"
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
+                    {canWrite ? (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setEditing(item)}
+                        title="Editar"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                    ) : null}
                     {item.link_documentacion && (
                       <a href={item.link_documentacion} target="_blank" rel="noopener noreferrer">
                         <Button size="sm" variant="ghost" title="Descargar">
@@ -438,28 +455,32 @@ export default function LeyPierriTable({ searchTerm }: Props) {
                         </Button>
                       </a>
                     )}
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleAddReminder(item.id, item.beneficiarios)}
-                    title={
-                      pendingReminders.has(item.id)
-                        ? 'Editar recordatorio'
-                        : 'Agregar recordatorio'
-                    }
-                    className={cn(getReminderBellButtonClass(pendingReminders, item.id))}
-                  >
-                    <Bell className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleDelete(item.id)}
-                    className="text-red-600 hover:text-red-700"
-                    title="Eliminar"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  {canWrite ? (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleAddReminder(item.id, item.beneficiarios)}
+                        title={
+                          pendingReminders.has(item.id)
+                            ? 'Editar recordatorio'
+                            : 'Agregar recordatorio'
+                        }
+                        className={cn(getReminderBellButtonClass(pendingReminders, item.id))}
+                      >
+                        <Bell className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDelete(item.id)}
+                        className="text-red-600 hover:text-red-700"
+                        title="Eliminar"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </>
+                  ) : null}
                   </div>
                 </td>
               </tr>
