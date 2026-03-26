@@ -1,13 +1,11 @@
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
-import Header from '@/components/Header'
-import Navbar from '@/components/Navbar'
 import { ORGANIZATION_TITLE } from '@/lib/site-title'
 import './globals.css'
 
-const _geist = Geist({ subsets: ["latin"] });
-const _geistMono = Geist_Mono({ subsets: ["latin"] });
+const _geist = Geist({ subsets: ['latin'] })
+const _geistMono = Geist_Mono({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: `${ORGANIZATION_TITLE} — Las Flores`,
@@ -27,11 +25,7 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body className="flex min-h-dvh flex-col font-sans antialiased bg-background">
-        <Header />
-        <Navbar />
-        <main className="flex min-h-0 min-w-0 flex-1 flex-col">
-          {children}
-        </main>
+        {children}
         <Analytics />
       </body>
     </html>

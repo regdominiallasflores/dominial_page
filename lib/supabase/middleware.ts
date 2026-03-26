@@ -106,11 +106,30 @@ export async function updateSession(request: NextRequest) {
   }
 
   const pathname = request.nextUrl.pathname
-  const isPublicPath =
-    pathname.startsWith('/auth/login') || pathname.startsWith('/auth/')
+  /** Solo cuentas con email (registro tradicional); sin email = sin acceso. */
+  const hasSession = Boolean(user?.email?.trim())
+  const isPublicPath = pathname.startsWith('/auth/')
   const isApiPath = pathname.startsWith('/api/')
 
-  if (!user && !isPublicPath && !isApiPath) {
+  if (hasSession && pathname === '/auth/login') {
+    const url = request.nextUrl.clone()
+    url.pathname = '/'
+    const redirectResponse = NextResponse.redirect(url)
+    supabaseResponse.cookies.getAll().forEach(({ name, value, ...options }) => {
+      redirectResponse.cookies.set(name, value, options)
+    })
+    return redirectResponse
+  }
+
+  if (!hasSession && !isPublicPath) {
+    if (isApiPath) {
+      const res = NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+      supabaseResponse.cookies.getAll().forEach(({ name, value, ...options }) => {
+        res.cookies.set(name, value, options)
+      })
+      return res
+    }
+
     const url = request.nextUrl.clone()
     url.pathname = '/auth/login'
 

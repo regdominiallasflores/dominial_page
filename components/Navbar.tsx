@@ -74,6 +74,21 @@ export default function Navbar() {
 
   const showAccountMenu = Boolean(email) && !roleLoading
 
+  const AccountSlot =
+    roleLoading ? (
+      <div
+        className="ml-auto inline-flex size-9 shrink-0 items-center justify-center rounded-full border border-border bg-muted/50"
+        aria-hidden
+        title="Cargando sesión…"
+      >
+        <span className="size-4 animate-pulse rounded-full bg-muted-foreground/40" />
+      </div>
+    ) : email ? null : (
+      <Button type="button" variant="outline" size="sm" className="ml-auto shrink-0" asChild>
+        <Link href="/auth/login">Iniciar sesión</Link>
+      </Button>
+    )
+
   const AvatarMenu = showAccountMenu ? (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -165,7 +180,7 @@ export default function Navbar() {
             </SheetContent>
           </Sheet>
           <span className="truncate text-sm font-medium text-muted-foreground">Menú principal</span>
-          {AvatarMenu}
+          {AvatarMenu ?? AccountSlot}
         </div>
 
         <div className="hidden h-14 items-center gap-1 overflow-x-auto overflow-y-hidden py-1 lg:flex">
@@ -191,7 +206,11 @@ export default function Navbar() {
               </Link>
             )
           })}
-          {AvatarMenu ? <div className="ml-auto">{AvatarMenu}</div> : null}
+          {AvatarMenu ? (
+            <div className="ml-auto">{AvatarMenu}</div>
+          ) : (
+            <div className="ml-auto">{AccountSlot}</div>
+          )}
         </div>
       </div>
     </nav>
